@@ -1,17 +1,33 @@
+
+### Updated `setup.sh`
+
+```bash
 #!/bin/bash
 
-# welcome message
-echo "Welcome to Orv Telegram Proxy Scraper setup script!"
+# Welcome message
+echo "Welcome to the Telegram Proxy Scraper setup script!"
+
+# Clone the repository
+REPO_URL="https://github.com/yourusername/telegram-proxy-scraper.git"
+REPO_NAME="telegram-proxy-scraper"
+
+if [ ! -d "$REPO_NAME" ]; then
+    echo "Cloning the repository..."
+    git clone "$REPO_URL"
+fi
+
+# Navigate into the repository
+cd "$REPO_NAME" || { echo "Failed to navigate into the repository."; exit 1; }
 
 # Check if Python is installed
 if ! command -v python3 &> /dev/null
 then
     echo "Python3 is not installed. Please install Python3 and try again."
-    exit
+    exit 1
 fi
 
 # Create a virtual environment (optional but recommended)
-if ! [ -d "venv" ]; then
+if [ ! -d "venv" ]; then
     echo "Creating a virtual environment..."
     python3 -m venv venv
 fi
