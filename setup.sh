@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # welcome message
-echo "Welcome to Orv Telegram Proxy setup script!"
+echo "Welcome to Orv Telegram Proxy setup script"
+echo "This sets up a virtualenv and writes a .env file"
 
 # Check if Python is installed
 if ! command -v python3 &> /dev/null
