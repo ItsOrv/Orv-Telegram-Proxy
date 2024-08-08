@@ -1,15 +1,11 @@
-
-### Updated `setup.sh`
-
-```bash
 #!/bin/bash
 
 # Welcome message
 echo "Welcome to the Telegram Proxy Scraper setup script!"
 
 # Clone the repository
-REPO_URL="https://github.com/yourusername/telegram-proxy-scraper.git"
-REPO_NAME="telegram-proxy-scraper"
+REPO_URL="https://github.com/ItsOrv/Orv-Telegram-Proxy.git"
+REPO_NAME="/Orv-Telegram-Proxy"
 
 if [ ! -d "$REPO_NAME" ]; then
     echo "Cloning the repository..."
@@ -66,7 +62,7 @@ echo ".env file created successfully!"
 # Finish setup
 echo "Setup is complete. You can now run your bot using:"
 echo "source venv/bin/activate"
-echo "python src/bot.py"
+echo "python3 bot.py"
 
 # Deactivate virtual environment
 deactivate
