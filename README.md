@@ -67,7 +67,7 @@ To set up and run the project using Docker, follow these steps:
    If you are running the bot outside of Docker, use:
 
    ```bash
-   python src/bot.py
+   python3 src/bot.py
    ```
 
    The bot will start monitoring for proxy links.
