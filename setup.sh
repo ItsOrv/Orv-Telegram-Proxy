@@ -5,7 +5,7 @@ echo "Welcome to the Telegram Proxy Scraper setup script!"
 
 # Clone the repository
 REPO_URL="https://github.com/ItsOrv/Orv-Telegram-Proxy.git"
-REPO_NAME="/Orv-Telegram-Proxy"
+REPO_NAME="Orv-Telegram-Proxy"
 
 if [ ! -d "$REPO_NAME" ]; then
     echo "Cloning the repository..."
