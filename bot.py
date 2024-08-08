@@ -17,6 +17,7 @@ bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 async def my_event_handler(event):
     message = event.message.message
     proxy_links = re.findall(r'https?://t\.me/proxy\?\S+', message)
+    print(f"found {len(proxy_links)} proxy links")
     if proxy_links:
         for link in proxy_links:
             try:
