@@ -1,45 +1,42 @@
-# Telegram Proxy Scraper and Sender
+
+# Orv Telegram Proxy
 
 This project is a Python-based Telegram bot that uses the `Telethon` library to scrape Telegram proxy links from specific Telegram groups and channels and send them in an organized format through a Telegram bot.
 
 ## Features
-- **Scrapes Proxy Links:** The bot monitors specific Telegram channels for proxy links.
+- **Scrapes Proxy Links:** The telegram account monitors for proxy links.
 - **Extracts Proxy Information:** The bot extracts the IP address, port, and geographical location of the proxy server.
 - **Sends Proxies via Bot:** The bot formats and sends the extracted proxy information via a Telegram bot, including buttons for quick connection.
 
 ## Installation
 
-1. Clone the repository:
+To set up the project and install all dependencies, simply run the following command:
 
-   ```bash
-   git clone https://github.com/yourusername/telegram-proxy-scraper.git
-   cd telegram-proxy-scraper
-   ```
+```bash
+bash <(curl -s https://raw.githubusercontent.com/ItsOrv/Orv-Telegram-Proxy/main/setup.sh)
+```
 
-2. Install the required Python packages:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Create and configure your `.env` file with your API credentials:
-
-   ```bash
-   API_ID=your_api_id
-   API_HASH=your_api_hash
-   BOT_TOKEN=your_bot_token
-   ```
+This command will:
+1. Clone the repository.
+2. Navigate into the project directory.
+3. Create and activate a virtual environment.
+4. Install the required Python packages.
+5. Prompt you for necessary API credentials and create the `.env` file.
 
 ## Usage
 
-1. **Run the script:**
+1. **Activate the virtual environment:**
 
    ```bash
-   python3 bot.py
+   source venv/bin/activate
    ```
 
-2. The bot will start monitoring the specified Telegram channels for proxy links.
+2. **Run the bot:**
 
+   ```bash
+   python src/bot.py
+   ```
+   
 ## Acknowledgements
 
 - The project uses the [Telethon](https://github.com/LonamiWebs/Telethon) library for interacting with the Telegram API.
