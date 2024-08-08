@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  telegram-bot:
+    build: .
+    environment:
+      - API_ID=${API_ID}
+      - API_HASH=${API_HASH}
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID}
+      - DB_PATH=/app/data/db.json
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
