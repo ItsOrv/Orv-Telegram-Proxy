@@ -20,7 +20,7 @@ async def my_event_handler(event):
     if proxy_links:
         for link in proxy_links:
             try:
-                server = re.search(r'server=([^&]+)', link).group(1)
+                server = re.search(r'server=([^&]+)', link).group(1).strip()
                 port = re.search(r'port=([^&]+)', link).group(1)
                 response = requests.get(f'http://ip-api.com/json/{server}')
                 response.raise_for_status()
