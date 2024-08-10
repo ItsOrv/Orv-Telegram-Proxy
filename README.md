@@ -1,6 +1,6 @@
 # Orv Telegram Proxy
 
-Telegram bot that grabs proxy links from channels and reposts them.
+Telegram bot that grabs proxy links from channels and forwards them to your own channel.
 
 ## Setup
 
