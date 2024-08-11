@@ -27,7 +27,7 @@ async def my_event_handler(event):
                 response.raise_for_status()
                 location = response.json().get('country', 'Unknown')
                 if len(server) > 16:
-                    server = server[:16] + '.etc'
+                    server = server[:16] + '...'
                 text = f"**Orv\n\n• Country: {location} \n• IP: {server} \n• Port: {port} \n\n**[proxy](https://t.me/Orv_Proxy)~[config](https://t.me/Orv_Vpn)~[bot](https://t.me/OrBSup_bot)~[support](https://t.me/Orv_Sup)"
                 buttons = [[KeyboardButtonUrl('Connect', link)]]
                 await bot.send_message('orv_proxy', text, buttons=buttons, link_preview=False)
