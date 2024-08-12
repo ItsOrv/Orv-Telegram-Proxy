@@ -38,6 +38,7 @@ def is_proxy_logged(link):
 
 def log_proxy(link, country, ip, port):
     proxies = load_proxies()
+    # ids are just incrementing numbers for now
     proxy_id = str(len(proxies) + 1)
     proxies[proxy_id] = {
         'link': link,
