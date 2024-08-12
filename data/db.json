@@ -1,8 +1,6 @@
 {
     "target_channels": [
-        // List channel IDs here that the bot should actively monitor and interact with
     ],
     "ignored_channels": [
-        // List channel IDs here that the bot should ignore
     ]
 }
