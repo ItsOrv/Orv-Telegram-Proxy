@@ -1,3 +1,4 @@
+#bot.py
 import json
 from telethon import TelegramClient, events
 from telethon.tl.types import KeyboardButtonUrl, InlineKeyboardButton, InlineKeyboardMarkup
