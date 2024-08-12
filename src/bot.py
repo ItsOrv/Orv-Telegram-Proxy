@@ -1,17 +1,13 @@
-#bot.py
 import json
 from telethon import TelegramClient, events
-from telethon.tl.types import KeyboardButtonUrl, InlineKeyboardButton, InlineKeyboardMarkup
+from telethon.tl.types import InlineKeyboardButton, InlineKeyboardMarkup
 import re
-import requests
 from config import api_id, api_hash, bot_token, admin_id, db_path
 from utils import save_data, load_data, refresh_groups
 
-# Initialize the Telegram client
 client = TelegramClient('session_name', api_id, api_hash)
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# Store user responses temporarily
 user_responses = {}
 
 async def start_handler(event):
@@ -47,7 +43,7 @@ async def handle_user_response(event):
     chat_id = event.chat_id
     if chat_id in user_responses:
         action = user_responses[chat_id]['action']
-        user_responses.pop(chat_id, None)  # Clear the action after processing
+        user_responses.pop(chat_id)
         text = event.message.message
 
         data = load_data()
@@ -78,4 +74,3 @@ async def handle_user_response(event):
 
 client.start()
 client.run_until_disconnected()
-
