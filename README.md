@@ -14,3 +14,7 @@ Fill in your api_id, api_hash and bot_token at the top of bot.py before running.
 ## Example
 
 Send a proxy link to a watched channel and the bot reposts it with a Connect button.
+
+## Notes
+
+This is a hobby project, expect rough edges.
