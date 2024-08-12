@@ -37,3 +37,5 @@ echo ".env file created successfully!"
 echo "You can now run the bot with: python bot.py"
 
 deactivate
+
+echo "All done."
