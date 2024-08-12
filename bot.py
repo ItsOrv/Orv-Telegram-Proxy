@@ -54,6 +54,7 @@ async def my_event_handler(event):
     message = event.message.message
     proxy_links = re.findall(r'https?://t\.me/proxy\?\S+', message)
     if not proxy_links:
+        print("no proxy links in this message")
         return
     for link in proxy_links:
         try:
