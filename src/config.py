@@ -1,3 +1,4 @@
+#config.py
 import os
 
 api_id = os.getenv('API_ID')
