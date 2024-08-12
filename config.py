@@ -1,4 +1,5 @@
 # config.py
+# loads runtime settings from the .env file
 
 import os
 from dotenv import load_dotenv
