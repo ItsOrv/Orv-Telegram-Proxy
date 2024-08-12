@@ -19,4 +19,3 @@ async def refresh_groups(client):
     data['target_channels'].extend(new_channels)
 
     save_data(data)
-
