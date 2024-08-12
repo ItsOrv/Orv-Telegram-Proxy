@@ -18,3 +18,11 @@ Send a proxy link to a watched channel and the bot reposts it with a Connect but
 ## Notes
 
 This is a hobby project, expect rough edges.
+
+## Docker
+
+You can also run it in a container:
+
+```bash
+docker compose up -d
+```
