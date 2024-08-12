@@ -32,7 +32,7 @@ async def my_event_handler(event):
                 buttons = [[KeyboardButtonUrl('Connect', link)]]
                 await bot.send_message('orv_proxy', text, buttons=buttons, link_preview=False)
             except (AttributeError, requests.RequestException) as e:
-                print(f"Error processing link {link}: {e}")
+                print(f"[error] could not process {link}: {e}")
 
 
 client.start()
