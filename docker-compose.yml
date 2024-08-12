@@ -1,15 +1,14 @@
 version: '3.8'
 
 services:
-  telegram-bot:
+  telegram_bot_service:
     build: .
     environment:
-      - API_ID=${API_ID}
-      - API_HASH=${API_HASH}
-      - BOT_TOKEN=${BOT_TOKEN}
-      - ADMIN_ID=${ADMIN_ID}
-      - DB_PATH=/app/data/db.json
+      - API_ID=${API_ID}    # Your application's API ID
+      - API_HASH=${API_HASH}  # Your application's API Hash
+      - BOT_TOKEN=${BOT_TOKEN}  # Token for your Telegram Bot
+      - ADMIN_ID=${ADMIN_ID}  # Telegram user ID of the bot administrator
+      - DB_PATH=/app/data/db.json  # Path to the database file
     volumes:
-      - ./data:/app/data
-    restart: unless-stopped
-
+      - ./data:/app/data  # Mount the data directory to store persistent data
+    restart: unless-stopped  # Configure the container to restart automatically unless stopped manually
