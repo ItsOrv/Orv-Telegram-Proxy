@@ -24,4 +24,4 @@ This is a hobby project, expect rough edges.
 
 - Watches channels for proxy links
 - Detects proxy country from its IP
-- Forwards a formated message with a connect button
+- Forwards a formatted message with a connect button
