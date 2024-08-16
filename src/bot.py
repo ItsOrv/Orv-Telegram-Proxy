@@ -1,8 +1,8 @@
 from telethon import TelegramClient, events
 from telethon.tl.types import KeyboardButtonUrl
 from config import api_id, api_hash, bot_token, admin_id, db_path
-import re
 import requests
+import re
 
 # Initialize client and bot
 client = TelegramClient('session_name', api_id, api_hash)
@@ -19,7 +19,7 @@ async def my_event_handler(event):
                 server = re.search(r'server=([^&]+)', link).group(1)
                 port = re.search(r'port=([^&]+)', link).group(1)
                 response = requests.get(f'http://ip-api.com/json/{server}')
-                response.raise_for_status()  # Raise an error for bad status codes
+                response.raise_for_status()
                 location = response.json().get('country', 'idk')
                 if len(server) > 16:
                     server = server[:16] + '.etc'
