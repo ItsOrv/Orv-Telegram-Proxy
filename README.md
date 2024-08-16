@@ -1,27 +1,48 @@
 # Orv Telegram Proxy
 
-Telegram bot that grabs proxy links from channels and forwards them to your own channel.
+Telegram bot that collects proxy links from channels, checks them and forwards them to your own channel.
+
+[Telegram Channel](https://t.me/Orv_Proxy)
+
+## Features
+
+- Watches one or more channels for proxy links
+- Detects the country of each proxy from its IP
+- Pings the proxy and shows the latency
+- Forwards a formatted message with a connect button
 
 ## Setup
 
 ```bash
+git clone https://github.com/ItsOrv/Orv-Telegram-Proxy.git
+cd Orv-Telegram-Proxy
 pip install -r requirements.txt
-python bot.py
 ```
 
-Fill in your api_id, api_hash and bot_token at the top of bot.py before running.
+Run the setup script to create your `.env`:
 
-## Example
+```bash
+bash setup.sh
+```
 
-Send a proxy link to a watched channel and the bot reposts it with a Connect button.
+Or create the `.env` file yourself:
 
-## Notes
+```
+API_ID=your_api_id
+API_HASH=your_api_hash
+BOT_TOKEN=your_bot_token
+CHANNEL_ID=your_channel_id
+CHANNELS=1111111,2222222
+```
 
-This is a hobby project, expect rough edges.
+## Usage
 
+```bash
+python src/bot.py
+```
 
-## Features
+On the first run you will be asked for your phone number to log in.
 
-- Watches channels for proxy links
-- Detects proxy country from its IP
-- Forwards a formatted message with a connect button
+## License
+
+MIT
