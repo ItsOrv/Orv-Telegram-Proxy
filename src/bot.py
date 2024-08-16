@@ -1,76 +1,31 @@
-import json
 from telethon import TelegramClient, events
-from telethon.tl.types import InlineKeyboardButton, InlineKeyboardMarkup
+from telethon.tl.types import KeyboardButtonUrl
 import re
-from config import api_id, api_hash, bot_token, admin_id, db_path
-from utils import save_data, load_data, refresh_groups
+import requests
 
+# Initialize client and bot
 client = TelegramClient('session_name', api_id, api_hash)
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-user_responses = {}
-
-async def start_handler(event):
-    buttons = [
-        [InlineKeyboardButton("Add Channel", callback_data='add_channel')],
-        [InlineKeyboardButton("Remove Channel", callback_data='remove_channel')],
-        [InlineKeyboardButton("Refresh Channels", callback_data='refresh_channels')],
-    ]
-    reply_markup = InlineKeyboardMarkup(buttons)
-    await bot.send_message(event.chat_id, 'Channel Management', buttons=reply_markup)
-
-@bot.on(events.NewMessage(pattern="/start"))
-async def start_command(event):
-    await start_handler(event)
-
-@bot.on(events.CallbackQuery(data=re.compile(b'add_channel')))
-async def add_channel_handler(event):
-    await bot.send_message(event.chat_id, 'Please send the channel ID:')
-    user_responses[event.chat_id] = {'action': 'add_channel'}
-
-@bot.on(events.CallbackQuery(data=re.compile(b'remove_channel')))
-async def remove_channel_handler(event):
-    await bot.send_message(event.chat_id, 'Please send the channel ID:')
-    user_responses[event.chat_id] = {'action': 'remove_channel'}
-
-@bot.on(events.CallbackQuery(data=re.compile(b'refresh_channels')))
-async def refresh_channels_handler(event):
-    await refresh_groups(bot)
-    await bot.send_message(event.chat_id, 'Channels refreshed.')
-
-@bot.on(events.NewMessage)
-async def handle_user_response(event):
-    chat_id = event.chat_id
-    if chat_id in user_responses:
-        action = user_responses[chat_id]['action']
-        user_responses.pop(chat_id)
-        text = event.message.message
-
-        data = load_data()
-
-        if action == 'add_channel':
+@client.on(events.NewMessage(chats=[#your chats here]))
+async def my_event_handler(event):
+    message = event.message.message
+    proxy_links = re.findall(r'https?://t\.me/proxy\?\S+', message)
+    if proxy_links:
+        for link in proxy_links:
             try:
-                channel_id = int(text)
-                if channel_id not in data['target_channels']:
-                    data['target_channels'].append(channel_id)
-                    save_data(data)
-                    await bot.send_message(chat_id, f'Channel {channel_id} added.')
-                else:
-                    await bot.send_message(chat_id, f'Channel {channel_id} is already added.')
-            except ValueError:
-                await bot.send_message(chat_id, 'Invalid channel ID. Please send a numeric ID.')
-
-        elif action == 'remove_channel':
-            try:
-                channel_id = int(text)
-                if channel_id in data['target_channels']:
-                    data['target_channels'].remove(channel_id)
-                    save_data(data)
-                    await bot.send_message(chat_id, f'Channel {channel_id} removed.')
-                else:
-                    await bot.send_message(chat_id, f'Channel {channel_id} not found.')
-            except ValueError:
-                await bot.send_message(chat_id, 'Invalid channel ID. Please send a numeric ID.')
+                server = re.search(r'server=([^&]+)', link).group(1)
+                port = re.search(r'port=([^&]+)', link).group(1)
+                response = requests.get(f'http://ip-api.com/json/{server}')
+                response.raise_for_status()  # Raise an error for bad status codes
+                location = response.json().get('country', 'idk')
+                if len(server) > 16:
+                    server = server[:16] + '.etc'
+                text = f"**〰️Orv〰️\n\n• Country: {location} \n• IP: {server} \n• Port: {port} \n\n**[proxy](https://t.me/Orv_Proxy)~[config](https://t.me/Orv_Vpn)~[bot](https://t.me/OrBSup_bot)~[support](https://t.me/OrvSup_bot)"
+                buttons = [[KeyboardButtonUrl('Connect', link)]]
+                await bot.send_message('orv_proxy', text, buttons=buttons, link_preview=False)
+            except (AttributeError, requests.RequestException) as e:
+                print(f"Error processing link {link}: {e}")
 
 client.start()
 client.run_until_disconnected()
