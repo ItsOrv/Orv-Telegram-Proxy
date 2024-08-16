@@ -34,7 +34,7 @@ BOT_TOKEN=$BOT_TOKEN
 EOL
 
 echo ".env file created successfully!"
-echo "You can now run the bot with: python bot.py"
+echo "You can now run the bot with: python src/bot.py"
 
 deactivate
 
