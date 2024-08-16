@@ -1,6 +1,6 @@
 # Telegram Proxy Collector Bot
 
-This project is a Telegram bot designed to collect proxy links from specific Telegram channels and forward them to a designated channel. The bot also retrieves the country of the proxy server using the IP address and formats the message accordingly.
+This project is a Telegram bot designed to collect proxy links from specific Telegram channels and send them to your channel. The bot also retrieves the country of the proxy server using the IP address and formats the message accordingly.
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
 
 - **Automatic Proxy Collection**: The bot monitors specified channels for proxy links.
 - **Country Identification**: The bot fetches the country information based on the IP address of the proxy.
-- **Customizable Messages**: The bot formats and sends messages to a designated channel with proxy information and custom buttons.
+- **Customizable Messages**: The bot formats and sends messages to a designated channel with proxy information and connect button.
 - **Error Handling**: The bot includes logging and error handling to manage exceptions and provide meaningful error messages.
 
 ## Requirements
