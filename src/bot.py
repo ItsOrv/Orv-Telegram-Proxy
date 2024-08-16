@@ -1,15 +1,21 @@
-from telethon import TelegramClient, events
+# bot.py
+
+from telethon import TelegramClient, events, Button
 from telethon.tl.types import KeyboardButtonUrl
-from config import api_id, api_hash, bot_token, channel_id, proxy_channel_url ,config_channel_url, bot_url ,support_url
+from config import api_id, api_hash, bot_token, channel_id, proxy_channel_url, config_channel_url, bot_url, support_url
 import requests
 import re
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
 
 # Initialize client and bot
 client = TelegramClient('session_name', api_id, api_hash)
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
 
-@client.on(events.NewMessage(chats=['''your channels here''']))
+@client.on(events.NewMessage(chats=['your channels here']))
 async def my_event_handler(event):
     message = event.message.message
     proxy_links = re.findall(r'https?://t\.me/proxy\?\S+', message)
@@ -20,14 +26,27 @@ async def my_event_handler(event):
                 port = re.search(r'port=([^&]+)', link).group(1)
                 response = requests.get(f'http://ip-api.com/json/{server}')
                 response.raise_for_status()
-                location = response.json().get('country', 'idk')
+                location = response.json().get('country', 'Unknown')
+
+                # Truncate server address if necessary
                 if len(server) > 16:
                     server = server[:16] + '.etc'
-                text = f"**〰️Orv〰️\n\n• Country: {location} \n• IP: {server} \n• Port: {port} \n\n**[proxy]({proxy_channel_url})~[config]({config_channel_url})~[bot]({bot_url})~[support]({support_url})"
-                buttons = [[KeyboardButtonUrl('Connect', link)]]
+
+                text = (
+                    f"**〰️Orv〰️\n\n"
+                    f"• Country: {location} \n"
+                    f"• IP: {server} \n"
+                    f"• Port: {port} \n\n"
+                    f"**[proxy]({proxy_channel_url})~[config]({config_channel_url})~[bot]({bot_url})~[support]({support_url})"
+                )
+                buttons = [Button.url('Connect', link)]
                 await bot.send_message(channel_id, text, buttons=buttons, link_preview=False)
-            except (AttributeError, requests.RequestException) as e:
-                print(f"Error processing link {link}: {e}")
+            except AttributeError:
+                logging.error(f"Error parsing link: {link}. Required parameters missing.")
+            except requests.RequestException as e:
+                logging.error(f"Error fetching data for {server}: {e}")
+            except Exception as e:
+                logging.error(f"Unexpected error: {e}")
 
 client.start()
 client.run_until_disconnected()
