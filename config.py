@@ -18,6 +18,3 @@ support_url = os.getenv('SUPPORT_URL')
 
 # Load channels as a list of integers
 channels = [int(c.strip()) for c in os.getenv('CHANNELS', '').split(',') if c.strip()]
-
-# admin user id (used by the container experiment)
-admin_id = os.getenv('ADMIN_ID')
