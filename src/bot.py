@@ -1,5 +1,6 @@
 from telethon import TelegramClient, events
 from telethon.tl.types import KeyboardButtonUrl
+from config import api_id, api_hash, bot_token, admin_id, db_path
 import re
 import requests
 
@@ -7,7 +8,8 @@ import requests
 client = TelegramClient('session_name', api_id, api_hash)
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-@client.on(events.NewMessage(chats=[#your chats here]))
+
+@client.on(events.NewMessage(chats=['''your chats here''']))
 async def my_event_handler(event):
     message = event.message.message
     proxy_links = re.findall(r'https?://t\.me/proxy\?\S+', message)
