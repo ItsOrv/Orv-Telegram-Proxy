@@ -77,7 +77,8 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
 - **bot_token**: The token of your Telegram bot.
 - **channel_id**: The ID of the Telegram channel where the bot will send proxy messages.
 
-  **you can simply delete these url from code**
+you can simply delete these urls from code:
+
 - **proxy_channel_url**: URL of the proxy channel (for inclusion in messages).
 - **config_channel_url**: URL of my vpn channel (for inclusion in messages).
 - **bot_url**: URL of the bot (for inclusion in messages).
