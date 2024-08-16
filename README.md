@@ -19,11 +19,9 @@ This project is a Python-based Telegram bot that uses the `Telethon` library to 
    ```
 
 2. run main file:
-```
-python3 bot.py
-```
-
-
+   ```
+   python3 bot.py
+   ```
 
 *to-do list
 1. - **Manage Channels:** Admins can add or remove channels directly through Telegram bot commands.
