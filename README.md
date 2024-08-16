@@ -46,3 +46,8 @@ On the first run you will be asked for your phone number to authenticate.
 ## License
 
 MIT
+
+## Requirements
+
+- Python 3.9+
+- A Telegram account and a bot token
