@@ -19,3 +19,9 @@ Send a proxy link to a watched channel and the bot reposts it with a Connect but
 
 This is a hobby project, expect rough edges.
 
+
+## Features
+
+- Watches channels for proxy links
+- Detects proxy country from its IP
+- Forwards a formated message with a connect button
