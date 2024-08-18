@@ -1,6 +1,6 @@
 # Orv Telegram Proxy
 
-Telegram bot that collects proxy links from channels, checks them and forwards them to your own channel.
+Telegram bot that collects proxy links from channels, validates them and forwards them to your own channel.
 
 [Telegram Channel](https://t.me/Orv_Proxy)
 
