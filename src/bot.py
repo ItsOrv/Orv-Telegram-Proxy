@@ -1,8 +1,6 @@
-# bot.py
-
 from telethon import TelegramClient, events, Button
 from telethon.tl.types import KeyboardButtonUrl
-from config import api_id, api_hash, bot_token, channel_id, proxy_channel_url, config_channel_url, bot_url, support_url
+from config import api_id, api_hash, bot_token, channel_id, proxy_channel_url, config_channel_url, bot_url, support_url, channels
 import requests
 import re
 import logging
@@ -14,8 +12,16 @@ logging.basicConfig(level=logging.INFO)
 client = TelegramClient('session_name', api_id, api_hash)
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
+# Resolve channel entities
+resolved_channels = []
+for chat in channels:
+    try:
+        entity = client.loop.run_until_complete(client.get_input_entity(chat))
+        resolved_channels.append(entity)
+    except Exception as e:
+        logging.error(f"Error resolving chat '{chat}': {e}")
 
-@client.on(events.NewMessage(chats=['your channels here']))
+@client.on(events.NewMessage(chats=resolved_channels))
 async def my_event_handler(event):
     message = event.message.message
     proxy_links = re.findall(r'https?://t\.me/proxy\?\S+', message)
