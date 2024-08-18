@@ -19,3 +19,7 @@ support_url = os.getenv('SUPPORT_URL')
 # Load channels as a list of integers
 _raw_channels = os.getenv('CHANNELS', '')
 channels = [int(c.strip()) for c in _raw_channels.split(',') if c.strip()]
+
+# Warn early if no channels were provided
+if not channels:
+    print("Warning: CHANNELS is empty, the bot will not monitor anything")
