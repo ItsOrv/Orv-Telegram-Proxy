@@ -58,25 +58,19 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
 5. Create a `.env` file in the root directory of the project with the following content:
 
    ```env
-   API_ID=123456
+   API_ID=your_api_id
    API_HASH=your_api_hash
    BOT_TOKEN=your_bot_token
-   CHANNEL_ID=orv_proxy  # channel_id as a string
+   CHANNEL_ID=your_channel_id
    
-   PROXY_CHANNEL_URL=https://example.com/proxy
-   CONFIG_CHANNEL_URL=https://example.com/config
-   BOT_URL=https://example.com/bot
-   SUPPORT_URL=https://example.com/support
+   PROXY_CHANNEL_URL=https://....
+   CONFIG_CHANNEL_URL=https://....
+   BOT_URL=https://....
+   SUPPORT_URL=https://....
    
-   CHANNELS=your_channel_1, your_channel_2, your_channel_3
+   CHANNELS=1111111,2222222,3333333
 
-   ```
 
- 6. In the `src/bot.py` file, replace `'your channels here'` with the numerical IDs of the target channels, separated by commas. The final code should look something like this:
-
-   ```
-   @client.on(events.NewMessage(chats=[12345678, 43211234]))
-   async def my_event_handler(event):
    ```
 
 ## Configuration
