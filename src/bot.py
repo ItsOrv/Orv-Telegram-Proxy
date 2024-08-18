@@ -1,6 +1,8 @@
+# bot.py
+
 from telethon import TelegramClient, events, Button
 from telethon.tl.types import KeyboardButtonUrl
-from config import api_id, api_hash, bot_token, channel_id, proxy_channel_url, config_channel_url, bot_url, support_url, channels
+from config import api_id, api_hash, bot_token, channels, proxy_channel_url, config_channel_url, bot_url, support_url, channel_id
 import requests
 import re
 import logging
@@ -12,16 +14,7 @@ logging.basicConfig(level=logging.INFO)
 client = TelegramClient('session_name', api_id, api_hash)
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-# Resolve channel entities
-resolved_channels = []
-for chat in channels:
-    try:
-        entity = client.loop.run_until_complete(client.get_input_entity(chat))
-        resolved_channels.append(entity)
-    except Exception as e:
-        logging.error(f"Error resolving chat '{chat}': {e}")
-
-@client.on(events.NewMessage(chats=resolved_channels))
+@client.on(events.NewMessage(chats=channels))
 async def my_event_handler(event):
     message = event.message.message
     proxy_links = re.findall(r'https?://t\.me/proxy\?\S+', message)
@@ -34,7 +27,6 @@ async def my_event_handler(event):
                 response.raise_for_status()
                 location = response.json().get('country', 'Unknown')
 
-                # Truncate server address if necessary
                 if len(server) > 16:
                     server = server[:16] + '.etc'
 
@@ -54,5 +46,11 @@ async def my_event_handler(event):
             except Exception as e:
                 logging.error(f"Unexpected error: {e}")
 
-client.start()
-client.run_until_disconnected()
+async def main():
+    # Ensure full connection
+    await client.start()
+
+    # Run the bot
+    await client.run_until_disconnected()
+
+client.loop.run_until_complete(main())
