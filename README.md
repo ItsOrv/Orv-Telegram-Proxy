@@ -61,7 +61,7 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
    nano .env
    ```
  
-5.1 write the following content:
+   5.1 write the following content:
 
    ```env
    API_ID=your_api_id
