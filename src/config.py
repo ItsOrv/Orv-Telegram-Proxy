@@ -17,4 +17,5 @@ bot_url = os.getenv('BOT_URL')
 support_url = os.getenv('SUPPORT_URL')
 
 # Load channels as a list of integers
-channels = [int(c.strip()) for c in os.getenv('CHANNELS', '').split(',') if c.strip()]
+_raw_channels = os.getenv('CHANNELS', '')
+channels = [int(c.strip()) for c in _raw_channels.split(',') if c.strip()]
