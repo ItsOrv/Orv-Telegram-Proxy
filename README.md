@@ -56,12 +56,12 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
    ```
 
 5. Create a `.env` file in the root directory of the project:
-6. 
+   
    ```bash   
    nano .env
    ```
  
- write the following content:
+5.1 write the following content:
 
    ```env
    API_ID=your_api_id
