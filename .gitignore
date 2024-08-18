@@ -7,6 +7,7 @@ venv/
 
 # Environment
 .env
+.env.local
 
 # IDE
 .idea/
