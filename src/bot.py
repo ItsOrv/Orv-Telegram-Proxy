@@ -122,7 +122,7 @@ async def clean_old_proxies():
 
 async def schedule_cleaning():
     while True:
-        await asyncio.sleep(86400)
+        await asyncio.sleep(86400)  # once a day
         await clean_old_proxies()
 
 
