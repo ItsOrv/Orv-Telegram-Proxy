@@ -19,7 +19,7 @@ cd Orv-Telegram-Proxy
 pip install -r requirements.txt
 ```
 
-Run the setup script to create your `.env`:
+Run the helper script to create your `.env`:
 
 ```bash
 bash setup.sh
