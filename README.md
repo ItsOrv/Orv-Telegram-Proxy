@@ -51,3 +51,7 @@ MIT
 
 - Python 3.9+
 - A Telegram account and a bot token
+
+### Monitored channels
+
+Set `CHANNELS` to a comma separated list of channel ids your account can read.
