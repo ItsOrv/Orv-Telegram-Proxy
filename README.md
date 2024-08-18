@@ -55,13 +55,7 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
    pip install -r requirements.txt
    ```
 
-5. Create a `.env` file in the root directory of the project:
-   
-   ```bash   
-   nano .env
-   ```
- 
-   4.1. write the following content:
+5. Create a `.env` file in the root directory of the project with the following content:
 
    ```env
    API_ID=your_api_id
