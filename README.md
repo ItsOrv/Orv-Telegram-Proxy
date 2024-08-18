@@ -1,4 +1,4 @@
-# Telegram Proxy Collector Bot
+# Orv Telegram Proxy
 
 This project is a Telegram bot designed to collect proxy links from specific Telegram channels and send them to your channel. The bot also retrieves the country of the proxy server using the IP address and formats the message accordingly.
 
@@ -32,8 +32,8 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/telegram-proxy-collector.git
-   cd telegram-proxy-collector
+   git clone https://github.com/ItsOrv/Orv-Telegram-Proxy.git
+   cd Orv-Telegram-Proxy
    ```
 
 2. Create and activate a virtual environment (optional but recommended):
