@@ -64,7 +64,7 @@ def ping_proxy(host, port, timeout=2):
             return round((time.time() - start) * 1000, 2)
         return None
     except Exception as e:
-        print(f"Ping failed for {host}:{port} - {e}")
+        print(f"ping failed for {host}:{port}: {e}")
         return None
 
 
