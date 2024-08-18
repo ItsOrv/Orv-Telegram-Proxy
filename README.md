@@ -6,7 +6,7 @@ Telegram bot that collects proxy links from channels, validates them and forward
 
 ## Features
 
-- Watches one or more channels for proxy links
+- Watches one or more channels for new proxy links
 - Detects the country of each proxy from its IP
 - Pings the proxy and shows the latency
 - Forwards a formatted message with a connect button
