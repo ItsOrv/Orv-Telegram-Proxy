@@ -58,22 +58,25 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
 5. Create a `.env` file in the root directory of the project with the following content:
 
    ```env
-   API_ID=your_api_id
+   API_ID=123456
    API_HASH=your_api_hash
    BOT_TOKEN=your_bot_token
-   CHANNEL_ID=your_channel_id
-   PROXY_CHANNEL_URL=https://t.me/your_proxy_channel
-   CONFIG_CHANNEL_URL=https://t.me/your_config_channel
-   BOT_URL=https://t.me/your_bot
-   SUPPORT_URL=https://t.me/your_support
+   CHANNEL_ID=orv_proxy  # channel_id as a string
+   
+   PROXY_CHANNEL_URL=https://example.com/proxy
+   CONFIG_CHANNEL_URL=https://example.com/config
+   BOT_URL=https://example.com/bot
+   SUPPORT_URL=https://example.com/support
+   
+   CHANNELS=your_channel_1, your_channel_2, your_channel_3
+
    ```
 
  6. In the `src/bot.py` file, replace `'your channels here'` with the numerical IDs of the target channels, separated by commas. The final code should look something like this:
 
-  ```
+   ```
    @client.on(events.NewMessage(chats=[12345678, 43211234]))
    async def my_event_handler(event):
-   ...
    ```
 
 ## Configuration
@@ -89,6 +92,7 @@ you can simply delete these urls from code:
 - **config_channel_url**: URL of my vpn channel (for inclusion in messages).
 - **bot_url**: URL of the bot (for inclusion in messages).
 - **support_url**: URL of the support (for inclusion in messages).
+- **channels**: Numeric id of groups or channels for proxy search, the desired account must be a member of the channels or groups
 
 ## Running the Bot
 
@@ -98,7 +102,7 @@ you can simply delete these urls from code:
    ```bash
    python3 src/bot.py
    ```
-
+   
 The bot will start listening to the specified channels for new proxy links and forward them to your channel.
 
 ## Error Handling
