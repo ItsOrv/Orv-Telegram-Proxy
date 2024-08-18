@@ -39,17 +39,23 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
 2. Create and activate a virtual environment (optional but recommended):
 
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   python3 -m venv venv
+   source venv/bin/activate
    ```
-
-3. Install the required Python packages:
+   
+   On Windows use:
+   ```bash
+   python3 -m venv venv
+   venv\Scripts\activate
+   ```
+   
+4. Install the required Python packages:
 
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Create a `.env` file in the root directory of the project with the following content:
+5. Create a `.env` file in the root directory of the project with the following content:
 
    ```env
    API_ID=your_api_id
@@ -62,7 +68,7 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
    SUPPORT_URL=https://t.me/your_support
    ```
 
- 5. In the `src/bot.py` file, replace `'your channels here'` with the numerical IDs of the target channels, separated by commas. The final code should look something like this:
+ 6. In the `src/bot.py` file, replace `'your channels here'` with the numerical IDs of the target channels, separated by commas. The final code should look something like this:
 
   ```
    @client.on(events.NewMessage(chats=[12345678, 43211234]))
