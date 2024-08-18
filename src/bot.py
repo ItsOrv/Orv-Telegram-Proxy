@@ -1,19 +1,3 @@
-# bot.py
-
-from telethon import TelegramClient, events, Button
-from telethon.tl.types import KeyboardButtonUrl
-from config import api_id, api_hash, bot_token, channels, proxy_channel_url, config_channel_url, bot_url, support_url, channel_id
-import requests
-import re
-import logging
-
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-
-# Initialize client and bot
-client = TelegramClient('session_name', api_id, api_hash)
-bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
-
 @client.on(events.NewMessage(chats=channels))
 async def my_event_handler(event):
     message = event.message.message
@@ -23,18 +7,27 @@ async def my_event_handler(event):
             try:
                 server = re.search(r'server=([^&]+)', link).group(1)
                 port = re.search(r'port=([^&]+)', link).group(1)
+                server_txt = server[:16] + '.etc' if len(server) > 16 else server
+
+                # Ping the server
+                ping = ping_server(server)
+
+                # Skip the message if ping is not available
+                if ping == "N/A":
+                    logging.info(f"Skipping message with IP {server} due to N/A ping.")
+                    continue
+
+                # Get location information
                 response = requests.get(f'http://ip-api.com/json/{server}')
                 response.raise_for_status()
                 location = response.json().get('country', 'Unknown')
 
-                if len(server) > 16:
-                    server = server[:16] + '.etc'
-
                 text = (
                     f"**〰️Orv〰️\n\n"
                     f"• Country: {location} \n"
-                    f"• IP: {server} \n"
-                    f"• Port: {port} \n\n"
+                    f"• IP: {server_txt} \n"
+                    f"• Port: {port} \n"
+                    f"• Ping: {ping} \n\n"
                     f"**[proxy]({proxy_channel_url})~[config]({config_channel_url})~[bot]({bot_url})~[support]({support_url})"
                 )
                 buttons = [Button.url('Connect', link)]
@@ -45,12 +38,3 @@ async def my_event_handler(event):
                 logging.error(f"Error fetching data for {server}: {e}")
             except Exception as e:
                 logging.error(f"Unexpected error: {e}")
-
-async def main():
-    # Ensure full connection
-    await client.start()
-
-    # Run the bot
-    await client.run_until_disconnected()
-
-client.loop.run_until_complete(main())
