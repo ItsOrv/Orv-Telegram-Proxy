@@ -53,7 +53,7 @@ def log_proxy(link, country, ip, port, ping=None):
     save_proxies(proxies)
 
 
-def ping_proxy(host, port, timeout=2):
+def ping_proxy(host, port, timeout=3):
     try:
         start = time.time()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
