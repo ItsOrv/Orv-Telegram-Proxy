@@ -102,9 +102,9 @@ async def my_event_handler(event):
             if len(display_ip) > 16:
                 display_ip = display_ip[:16] + '.etc'
 
-            text = f"**Orv\n\n• Country: {country} \n• IP: {display_ip} \n• Port: {port} \n"
+            text = f"**Orv\n\n• Country: {country}\n• IP: {display_ip}\n• Port: {port}\n"
             if ping is not None:
-                text += f"• Ping: {ping}ms \n"
+                text += f"• Ping: {ping}ms\n"
             text += "\n**[proxy](https://t.me/Orv_Proxy)~[config](https://t.me/Orv_Vpn)~[bot](https://t.me/OrBSup_bot)~[support](https://t.me/OrvSup_bot)"
 
             buttons = [[KeyboardButtonUrl('Connect', link)]]
