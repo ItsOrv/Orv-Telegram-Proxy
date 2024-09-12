@@ -1,5 +1,7 @@
 # Orv Telegram Proxy
 
+[telegram proxy Channel](https://t.me/Orv_Proxy)
+
 This project is a Telegram bot designed to collect proxy links from specific Telegram sources and send them to your channel. The bot also retrieves the country of the proxy server using the IP address Also, before sending, it makes sure to ping the server and writes the server's ping in the message.
 
 ## Table of Contents
