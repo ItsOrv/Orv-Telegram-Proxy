@@ -1,6 +1,6 @@
 # Orv Telegram Proxy
 
-This project is a Telegram bot designed to collect proxy links from specific Telegram channels and send them to your channel. The bot also retrieves the country of the proxy server using the IP address and formats the message accordingly.
+This project is a Telegram bot designed to collect proxy links from specific Telegram sources and send them to your channel. The bot also retrieves the country of the proxy server using the IP address Also, before sending, it makes sure to ping the server and writes the server's ping in the message.
 
 ## Table of Contents
 
@@ -15,14 +15,14 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
 
 ## Features
 
-- **Automatic Proxy Collection**: The bot monitors specified channels for proxy links.
-- **Country Identification**: The bot fetches the country information based on the IP address of the proxy.
-- **Customizable Messages**: The bot formats and sends messages to a designated channel with proxy information and connect button.
+- **Automatic Proxy Collection**: The account monitors specified channels for proxy links.
+- **Country Identification**: The it fetches the country information based on the IP address of the proxy.
+- **Customizable Messages**: The bot formats and sends messages to a designated channel with proxy information, ping, country and connect button.
 - **Error Handling**: The bot includes logging and error handling to manage exceptions and provide meaningful error messages.
 
 ## Requirements
 
-- Python 3.7+
+- Python 3.9+
 - Telegram account
 - Telegram bot token
 - Channels from which to collect proxy links
@@ -43,16 +43,10 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
    source venv/bin/activate
    ```
    
-   On Windows use:
-   ```bash
-   python3 -m venv venv
-   venv\Scripts\activate
-   ```
-   
 4. Install the required Python packages:
 
    ```bash
-   pip install -r requirements.txt
+   pip3 install -r requirements.txt
    ```
 
 5. Create a `.env` file in the root directory of the project with the following content:
@@ -77,7 +71,7 @@ This project is a Telegram bot designed to collect proxy links from specific Tel
 
 - **api_id**: Your Telegram API ID.
 - **api_hash**: Your Telegram API hash.
-- **bot_token**: The token of your Telegram bot.
+- **bot_token**: The token of your Telegram bot that will send messages to your channel.
 - **channel_id**: The ID of the Telegram channel where the bot will send proxy messages.
 
 you can simply delete these urls from code:
@@ -96,8 +90,7 @@ you can simply delete these urls from code:
    ```bash
    python3 src/bot.py
    ```
-   
-The bot will start listening to the specified channels for new proxy links and forward them to your channel.
+3. Now you will be asked for the account number that is joined to the proxy resources, After completing the login process, The bot will start listening to the specified sources for new proxy links and forward them to your channel.
 
 ## Error Handling
 
