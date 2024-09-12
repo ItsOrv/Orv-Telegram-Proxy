@@ -54,7 +54,7 @@ MIT
 
 ### Monitored channels
 
-Set `CHANNELS` to a comma separated list of channel ids your account can read.
+Set `CHANNELS` to a comma separated list of channel ids your account is a member of.
 
 Make sure your account has joined the channels listed in `CHANNELS`.
 
