@@ -41,7 +41,7 @@ CHANNELS=1111111,2222222
 python src/bot.py
 ```
 
-On the first run you will be asked for your phone number to authenticate.
+On the first run you will be prompted for your phone number to authenticate.
 
 ## License
 
