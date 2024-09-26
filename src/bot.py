@@ -117,7 +117,7 @@ async def clean_old_proxies():
     if os.path.exists(PROXY_FILE):
         with open(PROXY_FILE, 'w') as f:
             json.dump({}, f, indent=4)
-        print("Cleaned old proxies file")
+        print("cleaned old proxies file")
 
 
 async def schedule_cleaning():
