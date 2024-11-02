@@ -38,7 +38,7 @@ CHANNELS=1111111,2222222
 ## Usage
 
 ```bash
-python src/bot.py
+python src/bot.py  # starts the bot
 ```
 
 On the first run you will be prompted for your phone number to authenticate.
