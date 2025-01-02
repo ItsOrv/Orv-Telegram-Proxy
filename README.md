@@ -65,3 +65,7 @@ Each forwarded proxy includes its measured ping and detected country.
 Open an issue or reach out on the Telegram channel.
 
 On the first run Telethon will ask for your phone number to log in.
+
+## Web interface
+
+Run `python src/app.py` and open http://localhost:5000 to see the collected proxies.
