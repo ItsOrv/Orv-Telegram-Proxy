@@ -1,31 +1,30 @@
 import asyncio
 import threading
-from bot import client, bot, schedule_cleaning
-from app import app, refresh_proxies
+from gevent import monkey
+monkey.patch_all()  # پچ کردن کتابخانه‌ها برای همزمانی
+from flask import Flask
+from telethon import TelegramClient
+from bot import bot, client  # Assuming the bot and client are initialized in bot.py
+import gevent
 
-# تابع برای اجرای سرور Flask
+app = Flask(__name__)
+
+# Function to run the Flask app in a separate thread using gevent
 def run_flask():
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)  # غیرفعال کردن reloader و debug
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
-# تابع برای اجرای ربات تلگرام (Telethon)
-async def run_telegram():
-    # شروع به کار ربات
+async def main():
+    # Ensure full connection for Telethon client
     await client.start()
 
-    # اجرای وظایف زمان‌بندی‌شده
+    # Start Flask app in a separate gevent greenlet
+    gevent.spawn(run_flask)
+
+    # Schedule the cleaning task (can run in the background)
     asyncio.create_task(schedule_cleaning())
 
-    # اجرای ربات تلگرام تا زمانی که قطع شود
+    # Run the bot
     await client.run_until_disconnected()
 
-# تابع اصلی برای اجرای هر دو سرور
-def main():
-    # اجرای سرور Flask در یک نخ جداگانه
-    threading.Thread(target=run_flask, daemon=True).start()
-
-    # اجرای ربات تلگرام در حالت async
-    asyncio.run(run_telegram())
-
-if __name__ == "__main__":
-    # شروع به کار برنامه
-    main()
+# Start the main asynchronous function
+asyncio.run(main())
