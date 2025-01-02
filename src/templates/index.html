@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orv Proxy</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1b1b1b;
+            color: #fefefe;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 36px;
+            color: #fefefe;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+            cursor: pointer;
+        }
+        h1:hover {
+            text-decoration: underline;
+        }
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 40px auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+        }
+        .proxy-card {
+            background-color: #2c2c2c;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 280px;
+        }
+        .proxy-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        .proxy-card h3 {
+            color: #fefefe;
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .proxy-card p {
+            color: #fefefe;
+            font-size: 16px;
+            margin: 5px 0;
+            text-align: center;
+        }
+        .connect-button {
+            display: block;
+            padding: 12px;
+            color: white;
+            background-color: #1b1b1b;
+            text-decoration: none;
+            border-radius: 50px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .connect-button:hover {
+            background-color: #333333;
+            transform: scale(1.05);
+        }
+        .footer {
+            margin-top: 50px;
+            padding-bottom: 20px;
+            text-align: center;
+            font-size: 16px;
+            color: #fefefe;
+        }
+        .footer a {
+            color: #fefefe;
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: bold;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1 onclick="window.location.href='https://t.me/Orv_Proxy'">Orv Proxy</h1>
+    <div class="container">
+        {% for id, proxy in proxies.items() %}
+        <div class="proxy-card">
+            <h3>{{ id }}</h3>
+            <p><strong>Country:</strong> {{ proxy['Country'] }}</p>
+            <p><strong>IP:</strong> {{ proxy['IP'] }}</p>
+            <p><strong>Port:</strong> {{ proxy['Port'] }}</p>
+            <a class="connect-button" href="{{ proxy['link'] }}" target="_blank">Connect</a>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="footer">
+        <a href="https://t.me/Orv_Vpn" target="_blank">v2ray</a>
+        <a href="https://t.me/OrBSup_bot" target="_blank">Bot</a>
+        <a href="https://t.me/Orv_Sup" target="_blank">Support</a>
+    </div>
+</body>
+</html>
