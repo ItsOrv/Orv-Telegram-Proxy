@@ -104,3 +104,14 @@ async def my_event_handler(event):
             except Exception as e:
                 logging.error(f"Unexpected error: {e}")
 
+async def main():
+    # Ensure full connection
+    await client.start()
+
+    # Schedule the cleaning task
+    asyncio.create_task(schedule_cleaning())
+
+    # Run the bot
+    await client.run_until_disconnected()
+
+client.loop.run_until_complete(main())
