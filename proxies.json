@@ -1,0 +1,44 @@
+{
+    "1": {
+        "link": "https://t.me/proxy?server=108.181.121.52&port=2443&secret=FgMBAgABAAH8AwOG4kw63Q==",
+        "Country": "Spain",
+        "IP": "108.181.121.52",
+        "Port": "2443"
+    },
+    "2": {
+        "link": "https://t.me/proxy?server=77.232.40.30&port=443&secret=eeNEgYdJvXrFGRMCIMJdCQ",
+        "Country": "Russia",
+        "IP": "77.232.40.30",
+        "Port": "443"
+    },
+    "3": {
+        "link": "https://t.me/proxy?server=77.232.40.30&port=443&secret=eeNEgYdJvXrFGRMCIMJdCQ",
+        "Country": "Russia",
+        "IP": "77.232.40.30",
+        "Port": "443"
+    },
+    "4": {
+        "link": "https://t.me/proxy?server=212.34.145.230&port=44443&secret=eeNEgYdJvXrFGRMCIMJdCQAA",
+        "Country": "The Netherlands",
+        "IP": "212.34.145.230",
+        "Port": "44443"
+    },
+    "5": {
+        "link": "https://t.me/proxy?server=5.35.44.232&port=64443&secret=eeNEgYdJvXrFGRMCIMJdCQAA",
+        "Country": "The Netherlands",
+        "IP": "5.35.44.232",
+        "Port": "64443"
+    },
+    "6": {
+        "link": "https://t.me/proxy?server=213.176.65.117&port=85&secret=7gggggggggggggggggggggh0cmFuc2xhdGUuZ29v",
+        "Country": "Finland",
+        "IP": "213.176.65.117",
+        "Port": "85"
+    },
+    "7": {
+        "link": "https://t.me/proxy?server=213.176.65.158&port=8443&secret=FgMBAgABAAH8AwOG4kw63Q",
+        "Country": "Finland",
+        "IP": "213.176.65.158",
+        "Port": "8443"
+    }
+}
