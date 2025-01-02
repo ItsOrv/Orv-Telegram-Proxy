@@ -28,7 +28,3 @@ def index():
     proxies = load_proxies()
     return render_template('index.html', proxies=proxies)
 
-if __name__ == '__main__':
-    threading.Thread(target=refresh_proxies, daemon=True).start()
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
