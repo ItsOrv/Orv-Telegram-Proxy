@@ -14,3 +14,7 @@ venv/
 
 # Logs
 *.log
+
+# Telegram session files
+*.session
+*.session-journal
