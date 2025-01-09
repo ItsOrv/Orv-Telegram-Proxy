@@ -3,7 +3,8 @@ import json
 import os
 
 app = Flask(__name__)
-PROXY_FILE = 'proxies.json'
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+PROXY_FILE = os.path.join(os.path.dirname(_script_dir), 'proxies.json')
 
 
 def load_proxies():
