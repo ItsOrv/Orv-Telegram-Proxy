@@ -50,7 +50,7 @@ MIT
 ## Requirements
 
 - Python 3.9+
-- A Telegram account and a bot token
+- A Telegram account and a bot token from BotFather
 
 ### Monitored channels
 
