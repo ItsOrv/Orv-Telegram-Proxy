@@ -62,7 +62,7 @@ Each forwarded proxy includes its measured ping and detected country.
 
 ## Support
 
-Open an issue or reach out on the Telegram channel.
+Open an issue or reach out via the Telegram channel.
 
 On the first run Telethon will ask for your phone number to log in.
 
