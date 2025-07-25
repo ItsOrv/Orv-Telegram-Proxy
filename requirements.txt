@@ -1,4 +1,4 @@
-# Python 3.9+
+# Python 3.9 or newer
 telethon==1.36.0
 requests
 python-dotenv
