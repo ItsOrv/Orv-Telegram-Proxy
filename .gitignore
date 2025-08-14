@@ -21,3 +21,7 @@ venv/
 
 # Backups
 proxies.json.backup
+
+# venv variants
+env/
+ENV/
