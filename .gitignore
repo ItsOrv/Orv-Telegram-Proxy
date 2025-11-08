@@ -25,3 +25,6 @@ proxies.json.backup
 # venv variants
 env/
 ENV/
+
+# Python build artifacts
+*.egg-info/
