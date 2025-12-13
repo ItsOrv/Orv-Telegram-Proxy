@@ -71,3 +71,7 @@ On the first run Telethon will ask for your phone number to log in.
 Run `python src/app.py` and open http://localhost:5000 to see the collected proxies.
 
 The web page refreshes the list from `proxies.json` on each request.
+
+## Notes
+
+Logging is configured centrally in `logging_config.py`.
