@@ -1,128 +1,232 @@
-from telethon import TelegramClient, events
-from telethon.tl.types import KeyboardButtonUrl
-from config import api_id, api_hash, bot_token, channels, channel_id
+"""
+Telegram bot for collecting and forwarding proxy links with country detection and ping testing.
+"""
+
+from telethon import TelegramClient, events, Button
+from config import (
+    api_id, api_hash, bot_token, channels, proxy_channel_url,
+    config_channel_url, bot_url, support_url, channel_id
+)
 import re
-import requests
-import json
+import logging
 import os
+import asyncio
+import json
 import socket
 import time
-import asyncio
+import requests
+from typing import Dict, Optional, Tuple
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+PROXY_FILE = 'proxies.json'
 
 # Initialize client and bot
 client = TelegramClient('session_name', api_id, api_hash)
 bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
 
-PROXY_FILE = 'proxies.json'
+
+def ping_proxy(host: str, port: str, timeout: float = 3.0) -> Optional[float]:
+    """Ping a proxy server by attempting to connect to it."""
+    try:
+        port_int = int(port)
+        start_time = time.time()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        result = sock.connect_ex((host, port_int))
+        sock.close()
+        if result == 0:
+            return round((time.time() - start_time) * 1000, 2)
+        return None
+    except (socket.gaierror, socket.timeout, ValueError, OSError) as e:
+        logger.debug(f"Ping failed for {host}:{port} - {e}")
+        return None
 
 
-def load_proxies():
+def get_country_from_ip(ip: str, timeout: float = 5.0) -> str:
+    """Get country information for an IP address using ip-api.com."""
+    try:
+        response = requests.get(f'http://ip-api.com/json/{ip}', timeout=timeout)
+        response.raise_for_status()
+        data = response.json()
+        if data.get('status') == 'fail':
+            return 'Unknown'
+        return data.get('country', 'Unknown')
+    except requests.RequestException as e:
+        logger.error(f"Error fetching country for {ip}: {e}")
+        return 'Unknown'
+
+
+def load_proxies() -> Dict:
+    """Load proxies from the JSON file."""
     if not os.path.exists(PROXY_FILE):
         return {}
-    with open(PROXY_FILE, 'r') as f:
-        try:
-            return json.load(f)
-        except json.JSONDecodeError:
-            return {}
+    try:
+        with open(PROXY_FILE, 'r', encoding='utf-8') as file:
+            return json.load(file)
+    except (json.JSONDecodeError, IOError) as e:
+        logger.error(f"Error loading proxies file: {e}")
+        return {}
 
 
-def save_proxies(proxies):
-    with open(PROXY_FILE, 'w') as f:
-        json.dump(proxies, f, indent=4)
+def save_proxies(proxies: Dict) -> None:
+    """Save proxies to the JSON file."""
+    try:
+        with open(PROXY_FILE, 'w', encoding='utf-8') as file:
+            json.dump(proxies, file, indent=4, ensure_ascii=False)
+    except IOError as e:
+        logger.error(f"Error saving proxies file: {e}")
 
 
-def is_proxy_logged(link):
+def is_proxy_logged(proxy_link: str) -> bool:
+    """Check if the proxy has been logged in the proxy file."""
     proxies = load_proxies()
-    for entry in proxies.values():
-        if entry.get('link') == link:
-            return True
-    return False
+    return any(entry.get('link') == proxy_link for entry in proxies.values())
 
 
-def log_proxy(link, country, ip, port, ping=None):
+def log_proxy(proxy_link: str, country: str, ip: str, port: str, ping: Optional[float] = None) -> None:
+    """Log the proxy to the JSON file."""
     proxies = load_proxies()
     proxy_id = str(len(proxies) + 1)
-    proxies[proxy_id] = {
-        'link': link,
+    proxy_data = {
+        'link': proxy_link,
         'Country': country,
         'IP': ip,
         'Port': port
     }
     if ping is not None:
-        proxies[proxy_id]['Ping'] = f"{ping}ms"
+        proxy_data['Ping'] = f"{ping}ms"
+    proxies[proxy_id] = proxy_data
     save_proxies(proxies)
 
 
-def ping_proxy(host, port, timeout=3):
+def validate_port(port: str) -> bool:
+    """Validate if a string is a valid port number (1-65535)."""
     try:
-        start = time.time()
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        result = sock.connect_ex((host, int(port)))
-        sock.close()
-        if result == 0:
-            return round((time.time() - start) * 1000, 2)
-        return None
+        port_int = int(port)
+        return 1 <= port_int <= 65535
+    except ValueError:
+        return False
+
+
+def parse_proxy_link(link: str) -> Optional[Tuple[str, str]]:
+    """Parse a Telegram proxy link to extract server and port."""
+    try:
+        server_match = re.search(r'server=([^&]+)', link)
+        port_match = re.search(r'port=([^&]+)', link)
+        if not server_match or not port_match:
+            return None
+        server = server_match.group(1).strip()
+        port = port_match.group(1).strip()
+        if not server or not port:
+            return None
+        if not validate_port(port):
+            logger.warning(f"Invalid port number: {port}")
+            return None
+        return (server, port)
     except Exception as e:
-        print(f"ping failed for {host}:{port}: {e}")
+        logger.error(f"Error parsing proxy link {link}: {e}")
         return None
 
 
-def get_country(ip):
-    try:
-        response = requests.get(f'http://ip-api.com/json/{ip}')
-        response.raise_for_status()
-        return response.json().get('country', 'Unknown')
-    except requests.RequestException as e:
-        print(f"Error getting country for {ip}: {e}")
-        return 'Unknown'
+def escape_markdown(text: str) -> str:
+    """Escape special characters for Telegram markdown v2."""
+    special_chars = ['*', '_', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    escaped = text
+    for char in special_chars:
+        escaped = escaped.replace(char, f'\\{char}')
+    return escaped
+
+
+def format_proxy_message(country: str, ip: str, port: str, ping: Optional[float] = None) -> str:
+    """Format the proxy message for Telegram."""
+    safe_country = escape_markdown(country)
+    display_ip = ip
+    if len(ip) > 16:
+        display_ip = ip[:16] + '.etc'
+    safe_ip = escape_markdown(display_ip)
+    safe_port = escape_markdown(port)
+
+    message_parts = [
+        "**❴Orv❴**\n",
+        f"• Country: {safe_country}\n",
+        f"• IP: {safe_ip}\n",
+        f"• Port: {safe_port}\n"
+    ]
+    if ping is not None:
+        safe_ping = escape_markdown(f"{ping}ms")
+        message_parts.append(f"• Ping: {safe_ping}\n")
+    message_parts.append("\n")
+
+    link_parts = []
+    if proxy_channel_url:
+        link_parts.append(f"[proxy]({proxy_channel_url})")
+    if config_channel_url:
+        link_parts.append(f"[config]({config_channel_url})")
+    if bot_url:
+        link_parts.append(f"[bot]({bot_url})")
+    if support_url:
+        link_parts.append(f"[support]({support_url})")
+    if link_parts:
+        message_parts.append("~".join(link_parts))
+
+    return "".join(message_parts)
 
 
 @client.on(events.NewMessage(chats=channels))
 async def my_event_handler(event):
+    """Handle new messages from monitored channels."""
+    if not event.message or not event.message.message:
+        return
     message = event.message.message
     proxy_links = re.findall(r'https?://t\.me/proxy\?\S+', message)
     if not proxy_links:
         return
     for link in proxy_links:
         try:
-            server = re.search(r'server=([^&]+)', link).group(1)
-            port = re.search(r'port=([^&]+)', link).group(1)
+            parsed = parse_proxy_link(link)
+            if not parsed:
+                logger.warning(f"Failed to parse proxy link: {link}")
+                continue
+            server, port = parsed
 
             if is_proxy_logged(link):
-                print(f"Proxy already logged: {link}")
+                logger.info(f"Proxy {link} has already been processed.")
                 continue
 
-            country = get_country(server)
+            country = get_country_from_ip(server)
             ping = ping_proxy(server, port)
 
             log_proxy(link, country, server, port, ping)
 
-            display_ip = server
-            if len(display_ip) > 16:
-                display_ip = display_ip[:16] + '.etc'
-
-            text = f"**Orv\n\n• Country: {country}\n• IP: {display_ip}\n• Port: {port}\n"
-            if ping is not None:
-                text += f"• Ping: {ping}ms\n"
-            text += "\n**[proxy](https://t.me/Orv_Proxy)~[config](https://t.me/Orv_Vpn)~[bot](https://t.me/OrBSup_bot)~[support](https://t.me/OrvSup_bot)"
-
-            buttons = [[KeyboardButtonUrl('Connect', link)]]
+            text = format_proxy_message(country, server, port, ping)
+            buttons = [Button.url('Connect', link)]
             await bot.send_message(channel_id, text, buttons=buttons, link_preview=False)
-        except (AttributeError, requests.RequestException) as e:
-            print(f"Error processing link {link}: {e}")
+        except AttributeError as e:
+            logger.error(f"Error parsing link: {link}. Required parameters missing: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error processing proxy {link}: {e}", exc_info=True)
 
 
-async def clean_old_proxies():
-    if os.path.exists(PROXY_FILE):
-        with open(PROXY_FILE, 'w') as f:
-            json.dump({}, f, indent=4)
-        print("cleaned old proxies file")
+async def clean_old_proxies() -> None:
+    """Clear the proxy file (called periodically)."""
+    try:
+        if os.path.exists(PROXY_FILE):
+            with open(PROXY_FILE, 'w', encoding='utf-8') as file:
+                json.dump({}, file, indent=4)
+            logger.info("Cleaned old proxies file")
+    except Exception as e:
+        logger.error(f"Error cleaning proxies file: {e}")
 
 
-async def schedule_cleaning():
+async def schedule_cleaning() -> None:
+    """Schedule the cleaning task every 24 hours."""
     while True:
-        await asyncio.sleep(86400)  # once a day
+        await asyncio.sleep(86400)
         await clean_old_proxies()
 
 
