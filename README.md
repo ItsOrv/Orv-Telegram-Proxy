@@ -75,3 +75,5 @@ The web page refreshes the list from `proxies.json` on each request.
 ## Notes
 
 Logging is configured centrally in `logging_config.py`.
+
+The bot, web app and config are being split into separate modules under `src/`.
