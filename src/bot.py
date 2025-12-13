@@ -69,25 +69,38 @@ async def ping_proxy(host: str, port: str, timeout: float = 3.0) -> Optional[flo
 
 
 async def get_country_from_ip(ip: str, timeout: float = 5.0) -> str:
-    """Get country information for an IP address using ip-api.com (non-blocking)."""
-    try:
-        url = f'http://ip-api.com/json/{ip}'
-        timeout_obj = aiohttp.ClientTimeout(total=timeout)
-        async with aiohttp.ClientSession(timeout=timeout_obj) as session:
-            async with session.get(url) as response:
-                response.raise_for_status()
-                data = await response.json()
-        if data.get('status') == 'fail':
-            logger.warning(f"IP API returned error: {data.get('message', 'Unknown error')}")
-            return 'Unknown'
-        return data.get('country', 'Unknown')
-    except aiohttp.ClientError as e:
-        logger.error(f"Error fetching country for {ip}: {e}")
-        return 'Unknown'
-    except Exception as e:
-        logger.error(f"Unexpected error getting country for {ip}: {e}")
-        return 'Unknown'
+    """
+    Get country information for an IP address using ip-api.com (non-blocking).
+    Includes rate limiting to respect API limits (45 requests/minute for free tier).
+    """
+    global _last_api_request_time
 
+    # Rate limiting: ensure minimum interval between requests
+    current_time = time.time()
+    time_since_last = current_time - _last_api_request_time
+    if time_since_last < _api_min_interval:
+        await asyncio.sleep(_api_min_interval - time_since_last)
+
+    # Use semaphore to limit concurrent requests
+    async with api_semaphore:
+        _last_api_request_time = time.time()
+        try:
+            url = f'http://ip-api.com/json/{ip}'
+            timeout_obj = aiohttp.ClientTimeout(total=timeout)
+            async with aiohttp.ClientSession(timeout=timeout_obj) as session:
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+            if data.get('status') == 'fail':
+                logger.warning(f"IP API returned error: {data.get('message', 'Unknown error')}")
+                return 'Unknown'
+            return data.get('country', 'Unknown')
+        except aiohttp.ClientError as e:
+            logger.error(f"Error fetching country for {ip}: {e}")
+            return 'Unknown'
+        except Exception as e:
+            logger.error(f"Unexpected error getting country for {ip}: {e}")
+            return 'Unknown'
 
 def load_proxies() -> Dict:
     """Load proxies from the JSON file in a thread-safe manner."""
