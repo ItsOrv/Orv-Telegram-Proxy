@@ -7,6 +7,7 @@ from config import (
     api_id, api_hash, bot_token, channels, proxy_channel_url,
     config_channel_url, bot_url, support_url, channel_id
 )
+import aiohttp
 import re
 import logging
 import os
@@ -14,9 +15,9 @@ import asyncio
 import json
 import socket
 import time
-import requests
 from typing import Dict, Optional, Tuple
 from threading import Lock
+from concurrent.futures import ThreadPoolExecutor
 
 # Setup logging (centralized configuration)
 from logging_config import setup_logging
@@ -28,6 +29,8 @@ _script_dir = os.path.dirname(os.path.abspath(__file__))
 PROXY_FILE = os.path.join(os.path.dirname(_script_dir), 'proxies.json')
 # File lock for thread-safe operations
 file_lock = Lock()
+# Thread pool executor for blocking I/O operations
+executor = ThreadPoolExecutor(max_workers=4)
 
 # Initialize client and bot
 # Note: bot will be started in main() function to ensure proper async initialization
@@ -35,8 +38,8 @@ client = TelegramClient('session_name', api_id, api_hash)
 bot = TelegramClient('bot', api_id, api_hash)
 
 
-def ping_proxy(host: str, port: str, timeout: float = 3.0) -> Optional[float]:
-    """Ping a proxy server by attempting to connect to it."""
+def _ping_proxy_sync(host: str, port: str, timeout: float = 3.0) -> Optional[float]:
+    """Synchronous ping implementation (runs in thread pool)."""
     try:
         port_int = int(port)
         start_time = time.time()
@@ -52,17 +55,30 @@ def ping_proxy(host: str, port: str, timeout: float = 3.0) -> Optional[float]:
         return None
 
 
-def get_country_from_ip(ip: str, timeout: float = 5.0) -> str:
-    """Get country information for an IP address using ip-api.com."""
+async def ping_proxy(host: str, port: str, timeout: float = 3.0) -> Optional[float]:
+    """Ping a proxy server by attempting to connect to it (non-blocking)."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, _ping_proxy_sync, host, port, timeout)
+
+
+async def get_country_from_ip(ip: str, timeout: float = 5.0) -> str:
+    """Get country information for an IP address using ip-api.com (non-blocking)."""
     try:
-        response = requests.get(f'http://ip-api.com/json/{ip}', timeout=timeout)
-        response.raise_for_status()
-        data = response.json()
+        url = f'http://ip-api.com/json/{ip}'
+        timeout_obj = aiohttp.ClientTimeout(total=timeout)
+        async with aiohttp.ClientSession(timeout=timeout_obj) as session:
+            async with session.get(url) as response:
+                response.raise_for_status()
+                data = await response.json()
         if data.get('status') == 'fail':
+            logger.warning(f"IP API returned error: {data.get('message', 'Unknown error')}")
             return 'Unknown'
         return data.get('country', 'Unknown')
-    except requests.RequestException as e:
+    except aiohttp.ClientError as e:
         logger.error(f"Error fetching country for {ip}: {e}")
+        return 'Unknown'
+    except Exception as e:
+        logger.error(f"Unexpected error getting country for {ip}: {e}")
         return 'Unknown'
 
 
@@ -116,6 +132,16 @@ def log_proxy(proxy_link: str, country: str, ip: str, port: str, ping: Optional[
     save_proxies(proxies)
 
 
+def validate_ip_address(ip: str) -> bool:
+    """Validate if a string is a valid IP address (IPv4 or IPv6)."""
+    import ipaddress
+    try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
+
+
 def validate_port(port: str) -> bool:
     """Validate if a string is a valid port number (1-65535)."""
     try:
@@ -128,6 +154,8 @@ def validate_port(port: str) -> bool:
 def parse_proxy_link(link: str) -> Optional[Tuple[str, str]]:
     """Parse a Telegram proxy link to extract server and port with validation."""
     try:
+        if not link or len(link) > 500:
+            return None
         server_match = re.search(r'server=([^&]+)', link)
         port_match = re.search(r'port=([^&]+)', link)
         if not server_match or not port_match:
@@ -138,6 +166,8 @@ def parse_proxy_link(link: str) -> Optional[Tuple[str, str]]:
             return None
         if not validate_port(port):
             logger.warning(f"Invalid port number: {port}")
+            return None
+        if not server or len(server) > 253:
             return None
         return (server, port)
     except Exception as e:
@@ -210,8 +240,10 @@ async def my_event_handler(event):
                 logger.info(f"Proxy {link} has already been processed.")
                 continue
 
-            country = get_country_from_ip(server)
-            ping = ping_proxy(server, port)
+            country = await get_country_from_ip(server)
+            ping = await ping_proxy(server, port)
+            if ping is None:
+                logger.warning(f"Could not ping proxy {server}:{port}")
 
             log_proxy(link, country, server, port, ping)
 
