@@ -17,10 +17,9 @@ import time
 import requests
 from typing import Dict, Optional, Tuple
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Setup logging (centralized configuration)
+from logging_config import setup_logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
 PROXY_FILE = 'proxies.json'
