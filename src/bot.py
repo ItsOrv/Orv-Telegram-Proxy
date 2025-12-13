@@ -16,17 +16,23 @@ import socket
 import time
 import requests
 from typing import Dict, Optional, Tuple
+from threading import Lock
 
 # Setup logging (centralized configuration)
 from logging_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-PROXY_FILE = 'proxies.json'
+# File to store proxies - use absolute path based on script location
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+PROXY_FILE = os.path.join(os.path.dirname(_script_dir), 'proxies.json')
+# File lock for thread-safe operations
+file_lock = Lock()
 
 # Initialize client and bot
+# Note: bot will be started in main() function to ensure proper async initialization
 client = TelegramClient('session_name', api_id, api_hash)
-bot = TelegramClient('bot', api_id, api_hash).start(bot_token=bot_token)
+bot = TelegramClient('bot', api_id, api_hash)
 
 
 def ping_proxy(host: str, port: str, timeout: float = 3.0) -> Optional[float]:
@@ -61,24 +67,31 @@ def get_country_from_ip(ip: str, timeout: float = 5.0) -> str:
 
 
 def load_proxies() -> Dict:
-    """Load proxies from the JSON file."""
-    if not os.path.exists(PROXY_FILE):
-        return {}
-    try:
-        with open(PROXY_FILE, 'r', encoding='utf-8') as file:
-            return json.load(file)
-    except (json.JSONDecodeError, IOError) as e:
-        logger.error(f"Error loading proxies file: {e}")
-        return {}
+    """Load proxies from the JSON file in a thread-safe manner."""
+    with file_lock:
+        if not os.path.exists(PROXY_FILE):
+            return {}
+        try:
+            with open(PROXY_FILE, 'r', encoding='utf-8') as file:
+                return json.load(file)
+        except (json.JSONDecodeError, IOError) as e:
+            logger.error(f"Error loading proxies file: {e}")
+            return {}
 
 
 def save_proxies(proxies: Dict) -> None:
-    """Save proxies to the JSON file."""
-    try:
-        with open(PROXY_FILE, 'w', encoding='utf-8') as file:
-            json.dump(proxies, file, indent=4, ensure_ascii=False)
-    except IOError as e:
-        logger.error(f"Error saving proxies file: {e}")
+    """Save proxies to the JSON file in a thread-safe manner."""
+    with file_lock:
+        try:
+            if os.path.exists(PROXY_FILE):
+                backup_file = f"{PROXY_FILE}.bak"
+                with open(PROXY_FILE, 'r', encoding='utf-8') as src:
+                    with open(backup_file, 'w', encoding='utf-8') as dst:
+                        dst.write(src.read())
+            with open(PROXY_FILE, 'w', encoding='utf-8') as file:
+                json.dump(proxies, file, indent=4, ensure_ascii=False)
+        except IOError as e:
+            logger.error(f"Error saving proxies file: {e}")
 
 
 def is_proxy_logged(proxy_link: str) -> bool:
@@ -113,7 +126,7 @@ def validate_port(port: str) -> bool:
 
 
 def parse_proxy_link(link: str) -> Optional[Tuple[str, str]]:
-    """Parse a Telegram proxy link to extract server and port."""
+    """Parse a Telegram proxy link to extract server and port with validation."""
     try:
         server_match = re.search(r'server=([^&]+)', link)
         port_match = re.search(r'port=([^&]+)', link)
@@ -215,8 +228,9 @@ async def clean_old_proxies() -> None:
     """Clear the proxy file (called periodically)."""
     try:
         if os.path.exists(PROXY_FILE):
-            with open(PROXY_FILE, 'w', encoding='utf-8') as file:
-                json.dump({}, file, indent=4)
+            with file_lock:
+                with open(PROXY_FILE, 'w', encoding='utf-8') as file:
+                    json.dump({}, file, indent=4)
             logger.info("Cleaned old proxies file")
     except Exception as e:
         logger.error(f"Error cleaning proxies file: {e}")
@@ -225,10 +239,15 @@ async def clean_old_proxies() -> None:
 async def schedule_cleaning() -> None:
     """Schedule the cleaning task every 24 hours."""
     while True:
-        await asyncio.sleep(86400)
-        await clean_old_proxies()
+        try:
+            await asyncio.sleep(86400)
+            await clean_old_proxies()
+        except Exception as e:
+            logger.error(f"Error in cleaning schedule: {e}")
+            await asyncio.sleep(3600)
 
 
-client.start()
-client.loop.create_task(schedule_cleaning())
-client.run_until_disconnected()
+if __name__ == '__main__':
+    import sys
+    logger.warning("Running bot.py directly is deprecated. Please use 'python src/main.py' instead.")
+    sys.exit(1)
