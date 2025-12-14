@@ -26,7 +26,7 @@ PROXY_FILE = os.path.join(os.path.dirname(_script_dir), 'proxies.json')
 
 def load_proxies() -> Dict:
     """
-    Load proxies from the JSON file.
+    Load proxies from the JSON file (read-only, no locking needed for Flask).
     
     Returns:
         Dictionary of proxies or empty dict if file doesn't exist or is invalid
@@ -45,6 +45,9 @@ def load_proxies() -> Dict:
         return {}
     except IOError as e:
         logger.error(f"Error reading {PROXY_FILE}: {e}")
+        return {}
+    except Exception as e:
+        logger.error(f"Unexpected error loading proxies: {e}", exc_info=True)
         return {}
 
 
