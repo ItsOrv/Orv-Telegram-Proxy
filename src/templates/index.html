@@ -128,7 +128,7 @@
     </style>
 </head>
 <body>
-    <h1 onclick="window.location.href='https://t.me/Orv_Proxy'">Orv Proxy</h1>
+    <h1 onclick="window.location.href='{{ proxy_channel_url }}'">Orv Proxy</h1>
     <div class="container">
         {% for id, proxy in proxies.items() %}
         <div class="proxy-card">
@@ -136,14 +136,17 @@
             <p><strong>Country:</strong> {{ proxy['Country'] }}</p>
             <p><strong>IP:</strong> {{ proxy['IP'] }}</p>
             <p><strong>Port:</strong> {{ proxy['Port'] }}</p>
+            {% if proxy.get('Ping') %}
+            <p><strong>Ping:</strong> {{ proxy['Ping'] }}</p>
+            {% endif %}
             <a class="connect-button" href="{{ proxy['link'] }}" target="_blank">Connect</a>
         </div>
         {% endfor %}
     </div>
     <div class="footer">
-        <a href="https://t.me/Orv_Vpn" target="_blank">v2ray</a>
-        <a href="https://t.me/OrBSup_bot" target="_blank">Bot</a>
-        <a href="https://t.me/Orv_Sup" target="_blank">Support</a>
+        <a href="{{ config_channel_url }}" target="_blank">v2ray</a>
+        <a href="{{ bot_url }}" target="_blank">Bot</a>
+        <a href="{{ support_url }}" target="_blank">Support</a>
     </div>
 </body>
 </html>
