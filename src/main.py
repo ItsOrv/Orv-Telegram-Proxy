@@ -5,7 +5,12 @@ Main entry point for running both the Telegram bot and Flask web server.
 import asyncio
 import threading
 import logging
-from bot import bot, client, schedule_cleaning
+from logging_config import setup_logging
+
+# Setup logging first, before importing other modules
+setup_logging()
+
+from bot import bot, client, schedule_cleaning, executor
 from config import bot_token
 
 logger = logging.getLogger(__name__)
@@ -57,8 +62,7 @@ async def main() -> None:
         try:
             await bot.disconnect()
             await client.disconnect()
-            # Shutdown executor if it exists
-            from bot import executor
+            # Shutdown executor
             executor.shutdown(wait=True)
             logger.info("Resources cleaned up successfully")
         except Exception as e:
