@@ -34,6 +34,13 @@ file_lock = Lock()
 # Thread pool executor for blocking I/O operations
 executor = ThreadPoolExecutor(max_workers=4)
 
+# Rate limiting for IP geolocation API (ip-api.com free tier: 45 requests/minute)
+# Use semaphore to limit concurrent requests
+api_semaphore = asyncio.Semaphore(3)  # Limit to 3 concurrent API requests
+# Simple rate limiter: track last request time
+_last_api_request_time = 0.0
+_api_min_interval = 1.4  # ~43 requests per minute (slightly under 45 to be safe)
+
 # Initialize client and bot
 # Note: bot will be started in main() function to ensure proper async initialization
 client = TelegramClient('session_name', api_id, api_hash)
