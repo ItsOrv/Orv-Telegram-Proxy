@@ -1,30 +1,75 @@
+"""
+Main entry point for running both the Telegram bot and Flask web server.
+"""
+
 import asyncio
 import threading
-from gevent import monkey
-monkey.patch_all()  # پچ کردن کتابخانه‌ها برای همزمانی
-from flask import Flask
-from telethon import TelegramClient
-from bot import bot, client  # Assuming the bot and client are initialized in bot.py
-import gevent
+import logging
+from bot import bot, client, schedule_cleaning
+from config import bot_token
 
-app = Flask(__name__)
+logger = logging.getLogger(__name__)
 
-# Function to run the Flask app in a separate thread using gevent
-def run_flask():
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# Import Flask app from app.py
+from app import app
 
-async def main():
-    # Ensure full connection for Telethon client
-    await client.start()
 
-    # Start Flask app in a separate gevent greenlet
-    gevent.spawn(run_flask)
+def run_flask_app() -> None:
+    """Run Flask app in a separate thread."""
+    try:
+        logger.info("Starting Flask web server on http://0.0.0.0:5000")
+        app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    except Exception as e:
+        logger.error(f"Error running Flask app: {e}")
 
-    # Schedule the cleaning task (can run in the background)
-    asyncio.create_task(schedule_cleaning())
 
-    # Run the bot
-    await client.run_until_disconnected()
+async def main() -> None:
+    """Main async function to start bot and Flask server."""
+    try:
+        # Ensure full connection for Telethon client
+        await client.start()
+        logger.info("Telegram client started successfully")
+        
+        # Start the bot client (for sending messages)
+        await bot.start(bot_token=bot_token)
+        logger.info("Telegram bot client started successfully")
+        
+        # Schedule the cleaning task
+        asyncio.create_task(schedule_cleaning())
+        logger.info("Scheduled proxy cleaning task")
+        
+        # Start Flask app in a separate thread
+        flask_thread = threading.Thread(target=run_flask_app, daemon=True)
+        flask_thread.start()
+        logger.info("Flask web server thread started")
+        
+        # Run the bot (this will block until disconnected)
+        logger.info("Bot is running and listening for messages...")
+        await client.run_until_disconnected()
+        
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Fatal error in main: {e}", exc_info=True)
+        raise
+    finally:
+        # Cleanup connections
+        try:
+            await bot.disconnect()
+            await client.disconnect()
+            # Shutdown executor if it exists
+            from bot import executor
+            executor.shutdown(wait=True)
+            logger.info("Resources cleaned up successfully")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
 
-# Start the main asynchronous function
-asyncio.run(main())
+
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Application shutdown complete")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}", exc_info=True)
+        raise
