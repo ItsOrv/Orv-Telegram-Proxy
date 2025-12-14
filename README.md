@@ -87,12 +87,23 @@ you can simply delete these urls from code:
 ## Running the Bot
 
 1. Ensure that the `.env` file is correctly configured.
-2. Run the bot:
+2. Run the bot (recommended way):
 
+   ```bash
+   python3 src/main.py
+   ```
+   
+   This will start both the Telegram bot and the Flask web server concurrently.
+   
+   **Note:** If you only want to run the bot without the web server, you can run:
+   
    ```bash
    python3 src/bot.py
    ```
-3. Now you will be asked for the account number that is joined to the proxy resources, After completing the login process, The bot will start listening to the specified sources for new proxy links and forward them to your channel.
+   
+   However, `src/main.py` is the recommended entry point as it runs both services.
+
+3. Now you will be asked for the account number that is joined to the proxy resources. After completing the login process, the bot will start listening to the specified sources for new proxy links and forward them to your channel. The web server will be available at `http://localhost:5000`.
 
 ## Error Handling
 
