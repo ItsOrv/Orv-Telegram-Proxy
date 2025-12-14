@@ -17,6 +17,7 @@ import socket
 import time
 from typing import Dict, Optional, Tuple
 from threading import Lock
+from urllib.parse import quote
 import ipaddress
 from concurrent.futures import ThreadPoolExecutor
 
@@ -47,7 +48,17 @@ bot = TelegramClient('bot', api_id, api_hash)
 
 
 def _ping_proxy_sync(host: str, port: str, timeout: float = 3.0) -> Optional[float]:
-    """Synchronous ping implementation (runs in thread pool)."""
+    """
+    Synchronous ping implementation (runs in thread pool).
+    
+    Args:
+        host: The proxy server hostname or IP address
+        port: The proxy server port
+        timeout: Connection timeout in seconds
+        
+    Returns:
+        Ping time in milliseconds if successful, None otherwise
+    """
     try:
         port_int = int(port)
         start_time = time.time()
@@ -55,8 +66,10 @@ def _ping_proxy_sync(host: str, port: str, timeout: float = 3.0) -> Optional[flo
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.settimeout(timeout)
             result = sock.connect_ex((host, port_int))
+        
         if result == 0:
-            return round((time.time() - start_time) * 1000, 2)
+            ping_ms = (time.time() - start_time) * 1000
+            return round(ping_ms, 2)
         return None
     except (socket.gaierror, socket.timeout, ValueError, OSError) as e:
         logger.debug(f"Ping failed for {host}:{port} - {e}")
@@ -64,7 +77,17 @@ def _ping_proxy_sync(host: str, port: str, timeout: float = 3.0) -> Optional[flo
 
 
 async def ping_proxy(host: str, port: str, timeout: float = 3.0) -> Optional[float]:
-    """Ping a proxy server by attempting to connect to it (non-blocking)."""
+    """
+    Ping a proxy server by attempting to connect to it (non-blocking).
+    
+    Args:
+        host: The proxy server hostname or IP address
+        port: The proxy server port
+        timeout: Connection timeout in seconds
+        
+    Returns:
+        Ping time in milliseconds if successful, None otherwise
+    """
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(executor, _ping_proxy_sync, host, port, timeout)
 
@@ -73,49 +96,71 @@ async def get_country_from_ip(ip_or_hostname: str, timeout: float = 5.0) -> str:
     """
     Get country information for an IP address or hostname using ip-api.com (non-blocking).
     Includes rate limiting to respect API limits (45 requests/minute for free tier).
+    
+    Args:
+        ip_or_hostname: IP address or hostname to look up (validated before calling)
+        timeout: Request timeout in seconds
+        
+    Returns:
+        Country name or 'Unknown' if lookup fails
     """
     global _last_api_request_time
-
+    
     # Rate limiting: ensure minimum interval between requests
     current_time = time.time()
     time_since_last = current_time - _last_api_request_time
     if time_since_last < _api_min_interval:
         await asyncio.sleep(_api_min_interval - time_since_last)
-
+    
     # Use semaphore to limit concurrent requests
     async with api_semaphore:
         _last_api_request_time = time.time()
         try:
-            if not ip_or_hostname or len(ip_or_hostname) > 253:
+            # Additional validation before making request
+            if not ip_or_hostname or len(ip_or_hostname) > 253:  # Max hostname length
                 return 'Unknown'
-
+            
+            # Sanitize input for URL (basic check)
             if any(char in ip_or_hostname for char in ['\n', '\r', '\t', ' ', '<', '>', '&']):
                 logger.warning(f"Invalid characters in IP/hostname: {ip_or_hostname}")
                 return 'Unknown'
-
-            # Resolve hostname to IP if needed for better accuracy
+            
+            # Resolve hostname to IP if needed (ip-api.com accepts both IPs and hostnames)
+            # But we'll try to resolve hostnames first for better accuracy
             lookup_target = ip_or_hostname
             if not validate_ip_address(ip_or_hostname):
+                # It's a hostname, try to resolve it
                 try:
                     loop = asyncio.get_event_loop()
                     resolved_ip = await loop.getaddrinfo(ip_or_hostname, None, family=socket.AF_INET)
                     if resolved_ip:
-                        lookup_target = resolved_ip[0][4][0]
+                        lookup_target = resolved_ip[0][4][0]  # Get first IPv4 address
+                    else:
+                        # If resolution fails, use hostname directly (API may handle it)
+                        lookup_target = ip_or_hostname
                 except (socket.gaierror, OSError) as e:
                     logger.debug(f"Could not resolve hostname {ip_or_hostname}, using as-is: {e}")
                     lookup_target = ip_or_hostname
-
-            url = f'http://ip-api.com/json/{lookup_target}'
+            
+            # Use proper URL encoding
+            encoded_target = quote(lookup_target, safe='')
+            url = f'http://ip-api.com/json/{encoded_target}'
+            
+            # Use aiohttp for async HTTP requests
             timeout_obj = aiohttp.ClientTimeout(total=timeout)
             async with aiohttp.ClientSession(timeout=timeout_obj) as session:
                 async with session.get(url) as response:
                     response.raise_for_status()
                     data = await response.json()
+            
+            # Validate response
             if data.get('status') == 'fail':
                 logger.warning(f"IP API returned error: {data.get('message', 'Unknown error')}")
                 return 'Unknown'
+            
             country = data.get('country', 'Unknown')
-            if country and len(country) <= 100:
+            # Sanitize country name (basic check)
+            if country and len(country) <= 100:  # Reasonable country name length
                 return country
             return 'Unknown'
         except aiohttp.ClientError as e:
@@ -125,11 +170,18 @@ async def get_country_from_ip(ip_or_hostname: str, timeout: float = 5.0) -> str:
             logger.error(f"Unexpected error getting country for {ip_or_hostname}: {e}")
             return 'Unknown'
 
+
 def load_proxies() -> Dict:
-    """Load proxies from the JSON file in a thread-safe manner."""
+    """
+    Load proxies from the JSON file in a thread-safe manner.
+    
+    Returns:
+        Dictionary of proxies or empty dict if file doesn't exist or is invalid
+    """
     with file_lock:
         if not os.path.exists(PROXY_FILE):
             return {}
+        
         try:
             with open(PROXY_FILE, 'r', encoding='utf-8') as file:
                 return json.load(file)
@@ -139,14 +191,21 @@ def load_proxies() -> Dict:
 
 
 def save_proxies(proxies: Dict) -> None:
-    """Save proxies to the JSON file in a thread-safe manner."""
+    """
+    Save proxies to the JSON file in a thread-safe manner.
+    
+    Args:
+        proxies: Dictionary of proxies to save
+    """
     with file_lock:
         try:
+            # Create backup before writing
             if os.path.exists(PROXY_FILE):
                 backup_file = f"{PROXY_FILE}.bak"
                 with open(PROXY_FILE, 'r', encoding='utf-8') as src:
                     with open(backup_file, 'w', encoding='utf-8') as dst:
                         dst.write(src.read())
+            
             with open(PROXY_FILE, 'w', encoding='utf-8') as file:
                 json.dump(proxies, file, indent=4, ensure_ascii=False)
         except IOError as e:
@@ -154,7 +213,15 @@ def save_proxies(proxies: Dict) -> None:
 
 
 def is_proxy_logged(proxy_link: str) -> bool:
-    """Check if the proxy has been logged in the proxy file."""
+    """
+    Check if the proxy has been logged in the proxy file.
+    
+    Args:
+        proxy_link: The proxy link to check
+        
+    Returns:
+        True if proxy is already logged, False otherwise
+    """
     proxies = load_proxies()
     return any(entry.get('link') == proxy_link for entry in proxies.values())
 
@@ -163,13 +230,25 @@ def log_proxy_if_not_exists(proxy_link: str, country: str, ip: str, port: str, p
     """
     Atomically check if proxy exists and log it if it doesn't.
     This prevents race conditions when multiple proxies are processed concurrently.
+    
+    Args:
+        proxy_link: The full proxy link
+        country: Country name
+        ip: IP address
+        port: Port number
+        ping: Optional ping time in milliseconds
+        
+    Returns:
+        True if proxy was logged (new), False if it already existed
     """
     with file_lock:
         proxies = load_proxies()
-
+        
+        # Check if already exists
         if any(entry.get('link') == proxy_link for entry in proxies.values()):
             return False
-
+        
+        # Generate unique ID
         max_id = 0
         for existing_id in proxies.keys():
             try:
@@ -178,7 +257,7 @@ def log_proxy_if_not_exists(proxy_link: str, country: str, ip: str, port: str, p
                     max_id = id_num
             except ValueError:
                 continue
-
+        
         proxy_id = str(max_id + 1)
         proxy_data = {
             'link': proxy_link,
@@ -188,23 +267,40 @@ def log_proxy_if_not_exists(proxy_link: str, country: str, ip: str, port: str, p
         }
         if ping is not None:
             proxy_data['Ping'] = f"{ping}ms"
-
+        
         proxies[proxy_id] = proxy_data
-
+        
+        # Save within the lock to ensure atomicity
         try:
+            # Create backup before writing
+            if os.path.exists(PROXY_FILE):
+                backup_file = f"{PROXY_FILE}.bak"
+                with open(PROXY_FILE, 'r', encoding='utf-8') as src:
+                    with open(backup_file, 'w', encoding='utf-8') as dst:
+                        dst.write(src.read())
+            
             with open(PROXY_FILE, 'w', encoding='utf-8') as file:
                 json.dump(proxies, file, indent=4, ensure_ascii=False)
         except IOError as e:
             logger.error(f"Error saving proxies file: {e}")
             return False
-
+        
         return True
 
 
 def log_proxy(proxy_link: str, country: str, ip: str, port: str, ping: Optional[float] = None) -> None:
-    """Log the proxy to the JSON file."""
+    """
+    Log the proxy to the JSON file.
+    
+    Args:
+        proxy_link: The full proxy link
+        country: Country name
+        ip: IP address
+        port: Port number
+        ping: Optional ping time in milliseconds
+    """
     proxies = load_proxies()
-
+    
     # Generate unique ID by finding the maximum existing ID and adding 1
     # This handles cases where proxies are deleted
     max_id = 0
@@ -216,7 +312,7 @@ def log_proxy(proxy_link: str, country: str, ip: str, port: str, ping: Optional[
         except ValueError:
             # Skip non-numeric IDs
             continue
-
+    
     proxy_id = str(max_id + 1)
     proxy_data = {
         'link': proxy_link,
@@ -226,12 +322,21 @@ def log_proxy(proxy_link: str, country: str, ip: str, port: str, ping: Optional[
     }
     if ping is not None:
         proxy_data['Ping'] = f"{ping}ms"
+    
     proxies[proxy_id] = proxy_data
     save_proxies(proxies)
 
 
 def validate_ip_address(ip: str) -> bool:
-    """Validate if a string is a valid IP address (IPv4 or IPv6)."""
+    """
+    Validate if a string is a valid IP address (IPv4 or IPv6).
+    
+    Args:
+        ip: String to validate
+        
+    Returns:
+        True if valid IP address, False otherwise
+    """
     try:
         ipaddress.ip_address(ip)
         return True
@@ -240,7 +345,15 @@ def validate_ip_address(ip: str) -> bool:
 
 
 def validate_port(port: str) -> bool:
-    """Validate if a string is a valid port number (1-65535)."""
+    """
+    Validate if a string is a valid port number (1-65535).
+    
+    Args:
+        port: String to validate
+        
+    Returns:
+        True if valid port, False otherwise
+    """
     try:
         port_int = int(port)
         return 1 <= port_int <= 65535
@@ -249,23 +362,47 @@ def validate_port(port: str) -> bool:
 
 
 def parse_proxy_link(link: str) -> Optional[Tuple[str, str]]:
-    """Parse a Telegram proxy link to extract server and port with validation."""
+    """
+    Parse a Telegram proxy link to extract server and port with validation.
+    
+    Args:
+        link: The proxy link to parse
+        
+    Returns:
+        Tuple of (server, port) if successful, None otherwise
+    """
     try:
-        if not link or len(link) > 500:
+        # Validate link format
+        if not link or len(link) > 500:  # Reasonable length limit
             return None
+        
         server_match = re.search(r'server=([^&]+)', link)
         port_match = re.search(r'port=([^&]+)', link)
+        
         if not server_match or not port_match:
             return None
+        
         server = server_match.group(1).strip()
         port = port_match.group(1).strip()
+        
+        # Basic validation
         if not server or not port:
             return None
+        
+        # Validate port
         if not validate_port(port):
             logger.warning(f"Invalid port number: {port}")
             return None
-        if not server or len(server) > 253:
+        
+        # Validate IP address (server can be IP or hostname)
+        # For hostnames, we'll do basic validation (no spaces, reasonable length)
+        if not server or len(server) > 253:  # Max hostname length
             return None
+        
+        # Check for potentially malicious characters
+        if any(char in server for char in ['\n', '\r', '\t', ' ', '<', '>']):
+            return None
+        
         return (server, port)
     except Exception as e:
         logger.error(f"Error parsing proxy link {link}: {e}")
@@ -273,7 +410,16 @@ def parse_proxy_link(link: str) -> Optional[Tuple[str, str]]:
 
 
 def escape_markdown(text: str) -> str:
-    """Escape special characters for Telegram markdown v2."""
+    """
+    Escape special characters for Telegram markdown v2.
+    
+    Args:
+        text: Text to escape
+        
+    Returns:
+        Escaped text safe for Telegram markdown
+    """
+    # Telegram markdown v2 special characters that need escaping
     special_chars = ['*', '_', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
     escaped = text
     for char in special_chars:
@@ -281,26 +427,51 @@ def escape_markdown(text: str) -> str:
     return escaped
 
 
-def format_proxy_message(country: str, ip: str, port: str, ping: Optional[float] = None) -> str:
-    """Format the proxy message for Telegram."""
+def format_proxy_message(
+    country: str,
+    ip: str,
+    port: str,
+    ping: Optional[float] = None
+) -> str:
+    """
+    Format the proxy message for Telegram.
+    
+    Args:
+        country: Country name
+        ip: IP address (may be truncated)
+        port: Port number
+        ping: Optional ping time in milliseconds
+        
+    Returns:
+        Formatted message string
+    """
+    # Escape country name to prevent markdown injection
     safe_country = escape_markdown(country)
+    
+    # Truncate IP if too long
     display_ip = ip
     if len(ip) > 16:
         display_ip = ip[:16] + '.etc'
+    
+    # Escape IP and port for safety
     safe_ip = escape_markdown(display_ip)
     safe_port = escape_markdown(port)
-
+    
     message_parts = [
-        "**❴Orv❴**\n",
-        f"• Country: {safe_country}\n",
-        f"• IP: {safe_ip}\n",
-        f"• Port: {safe_port}\n"
+        "**\u2774Orv\u2774**\n",
+        f"\u2022 Country: {safe_country}\n",
+        f"\u2022 IP: {safe_ip}\n",
+        f"\u2022 Port: {safe_port}\n"
     ]
+    
     if ping is not None:
+        # Ping is a number, but escape it for consistency
         safe_ping = escape_markdown(f"{ping}ms")
-        message_parts.append(f"• Ping: {safe_ping}\n")
+        message_parts.append(f"\u2022 Ping: {safe_ping}\n")
+    
     message_parts.append("\n")
-
+    
+    # Add optional links
     link_parts = []
     if proxy_channel_url:
         link_parts.append(f"[proxy]({proxy_channel_url})")
@@ -310,9 +481,10 @@ def format_proxy_message(country: str, ip: str, port: str, ping: Optional[float]
         link_parts.append(f"[bot]({bot_url})")
     if support_url:
         link_parts.append(f"[support]({support_url})")
+    
     if link_parts:
         message_parts.append("~".join(link_parts))
-
+    
     return "".join(message_parts)
 
 
@@ -321,32 +493,69 @@ async def my_event_handler(event):
     """Handle new messages from monitored channels."""
     if not event.message or not event.message.message:
         return
+    
     message = event.message.message
-    proxy_links = re.findall(r'https?://t\.me/proxy\?\S+', message)
+    # Use a more restrictive regex to prevent ReDoS attacks
+    # Limit the character class and use non-greedy matching
+    proxy_links = re.findall(r'https?://t\.me/proxy\?[^\s<>"]{1,500}', message)
+    
     if not proxy_links:
         return
+    
     for link in proxy_links:
         try:
+            # Parse proxy link
             parsed = parse_proxy_link(link)
             if not parsed:
                 logger.warning(f"Failed to parse proxy link: {link}")
                 continue
+            
             server, port = parsed
-
+            
+            # Get country information
             country = await get_country_from_ip(server)
+            
+            # Ping the proxy server
             ping = await ping_proxy(server, port)
             if ping is None:
                 logger.warning(f"Could not ping proxy {server}:{port}")
-
+                # Continue anyway, but don't include ping in message
+            
             # Atomically check and log proxy (prevents race conditions)
             was_logged = log_proxy_if_not_exists(link, country, server, port, ping)
             if not was_logged:
                 logger.info(f"Proxy {link} has already been processed.")
                 continue
-
+            
+            # Format and send message
             text = format_proxy_message(country, server, port, ping)
             buttons = [Button.url('Connect', link)]
-            await bot.send_message(channel_id, text, buttons=buttons, link_preview=False)
+            
+            try:
+                # Ensure bot is connected before sending
+                if not bot.is_connected():
+                    logger.warning("Bot client is not connected, skipping message send")
+                    continue
+                
+                # Validate channel_id before sending
+                if not channel_id or not str(channel_id).strip():
+                    logger.error("Invalid channel_id: cannot be empty")
+                    continue
+                
+                await bot.send_message(
+                    channel_id,
+                    text,
+                    buttons=buttons,
+                    link_preview=False
+                )
+                logger.info(f"Successfully sent proxy {server}:{port} to channel")
+            except ValueError as e:
+                logger.error(f"Invalid channel_id format: {e}")
+                continue
+            except Exception as e:
+                logger.error(f"Error sending message to channel {channel_id}: {e}", exc_info=True)
+                continue
+            
         except AttributeError as e:
             logger.error(f"Error parsing link: {link}. Required parameters missing: {e}")
         except Exception as e:
@@ -369,14 +578,17 @@ async def schedule_cleaning() -> None:
     """Schedule the cleaning task every 24 hours."""
     while True:
         try:
-            await asyncio.sleep(86400)
+            await asyncio.sleep(86400)  # Sleep for 24 hours
             await clean_old_proxies()
         except Exception as e:
             logger.error(f"Error in cleaning schedule: {e}")
-            await asyncio.sleep(3600)
+            await asyncio.sleep(3600)  # Retry after 1 hour on error
 
 
+# Note: main() function has been moved to main.py to avoid duplication
+# This module can still be run standalone for testing purposes
 if __name__ == '__main__':
     import sys
     logger.warning("Running bot.py directly is deprecated. Please use 'python src/main.py' instead.")
+    logger.warning("For standalone bot (without web server), consider creating a separate entry point.")
     sys.exit(1)
