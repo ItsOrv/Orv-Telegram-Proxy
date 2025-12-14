@@ -333,16 +333,16 @@ async def my_event_handler(event):
                 continue
             server, port = parsed
 
-            if is_proxy_logged(link):
-                logger.info(f"Proxy {link} has already been processed.")
-                continue
-
             country = await get_country_from_ip(server)
             ping = await ping_proxy(server, port)
             if ping is None:
                 logger.warning(f"Could not ping proxy {server}:{port}")
 
-            log_proxy(link, country, server, port, ping)
+            # Atomically check and log proxy (prevents race conditions)
+            was_logged = log_proxy_if_not_exists(link, country, server, port, ping)
+            if not was_logged:
+                logger.info(f"Proxy {link} has already been processed.")
+                continue
 
             text = format_proxy_message(country, server, port, ping)
             buttons = [Button.url('Connect', link)]
