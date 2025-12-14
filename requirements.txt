@@ -1,5 +1,4 @@
-# Python 3.9+
 telethon==1.36.0
-aiohttp
-python-dotenv
-flask
+aiohttp>=3.9.0
+python-dotenv>=1.0.0
+flask>=3.0.0
