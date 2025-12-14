@@ -350,29 +350,193 @@ After converting `ping_proxy()` to async, the call site was missing `await`, cau
 
 ---
 
-## 10. Conclusion
+## 10. Additional Issues Found and Fixed (2024 Update)
+
+### 10.1 Duplicate Main Function
+**Severity:** Medium  
+**Status:** ✅ Fixed
+
+**Description:**  
+Both `bot.py` and `main.py` contained `main()` functions, causing confusion about the entry point and potential code duplication.
+
+**Fix Applied:**
+- Removed duplicate `main()` function from `bot.py`
+- Added deprecation warning when `bot.py` is run directly
+- Clarified that `main.py` is the recommended entry point
+
+**Code Location:** `src/bot.py` lines 445-486 (removed)
+
+---
+
+### 10.2 Logging Configuration Issues
+**Severity:** Medium  
+**Status:** ✅ Fixed
+
+**Description:**  
+Logging was only configured in `bot.py`, causing inconsistent logging behavior when modules were imported in different orders. This could lead to missing log messages or incorrect formatting.
+
+**Fix Applied:**
+- Created centralized `logging_config.py` module
+- All modules now use `setup_logging()` function
+- Ensures consistent logging configuration regardless of import order
+- Prevents duplicate log handlers
+
+**Code Location:** 
+- `src/logging_config.py` (new file)
+- `src/bot.py`, `src/main.py`, `src/app.py` (updated)
+
+---
+
+### 10.3 Inefficient Executor Import
+**Severity:** Low  
+**Status:** ✅ Fixed
+
+**Description:**  
+The `executor` was imported inside the `finally` block in `main.py`, causing unnecessary import overhead on every cleanup.
+
+**Fix Applied:**
+- Moved executor import to top-level imports
+- More efficient and cleaner code structure
+
+**Code Location:** `src/main.py` line 13
+
+---
+
+### 10.4 Missing Configuration Validation
+**Severity:** High  
+**Status:** ✅ Fixed
+
+**Description:**  
+- Empty `channels` list was not validated, which would cause the bot to fail silently
+- `channel_id` format was not validated, potentially causing runtime errors
+
+**Fix Applied:**
+- Added validation for empty channels list with clear error message
+- Added validation for `channel_id` format (integer, @username, or -100XXXXXXXXX)
+- Provides helpful error messages for misconfiguration
+
+**Code Location:** `src/config.py` lines 39-61
+
+---
+
+### 10.5 Telegram Markdown Injection Vulnerability
+**Severity:** Medium  
+**Status:** ✅ Fixed
+
+**Description:**  
+Country names and other user-provided data were inserted directly into Telegram messages without escaping markdown special characters. This could cause:
+- Message formatting issues
+- Potential markdown injection if country names contain special characters
+
+**Fix Applied:**
+- Created `escape_markdown()` function to escape all Telegram markdown v2 special characters
+- Applied escaping to country names, IP addresses, ports, and ping values
+- Prevents markdown injection and ensures proper message rendering
+
+**Code Location:** `src/bot.py` lines 304-353
+
+---
+
+### 10.6 ReDoS Vulnerability in Regex
+**Severity:** Medium  
+**Status:** ✅ Fixed
+
+**Description:**  
+The regex pattern for matching proxy links used an unbounded character class `[^\s<>"]+`, which could be exploited for ReDoS (Regular Expression Denial of Service) attacks with carefully crafted input.
+
+**Fix Applied:**
+- Added length limit (1-500 characters) to the regex pattern
+- Changed from greedy `+` to bounded `{1,500}` quantifier
+- Prevents ReDoS attacks while maintaining functionality
+
+**Code Location:** `src/bot.py` line 363
+
+---
+
+### 10.7 Missing Error Handling for Channel ID
+**Severity:** Medium  
+**Status:** ✅ Fixed
+
+**Description:**  
+No specific error handling for invalid `channel_id` when sending messages, making debugging difficult.
+
+**Fix Applied:**
+- Added validation check before sending messages
+- Added specific `ValueError` exception handling
+- Improved error messages with context
+
+**Code Location:** `src/bot.py` lines 422-437
+
+---
+
+### 10.8 Documentation Update
+**Severity:** Low  
+**Status:** ✅ Fixed
+
+**Description:**  
+README.md still referenced `src/bot.py` as the entry point, which is now deprecated in favor of `src/main.py`.
+
+**Fix Applied:**
+- Updated README to recommend `src/main.py` as the entry point
+- Added note about running bot standalone if needed
+- Clarified that main.py runs both bot and web server
+
+**Code Location:** `README.md` lines 87-100
+
+---
+
+## 11. Summary of All Issues Fixed (Complete List)
+
+| # | Issue | Severity | Status |
+|---|-------|----------|--------|
+| 1 | Bot client initialization at module level | Critical | ✅ Fixed |
+| 2 | Blocking socket operations in async context | Critical | ✅ Fixed |
+| 3 | Blocking HTTP requests in async context | Critical | ✅ Fixed |
+| 4 | Missing await for async ping call | Critical | ✅ Fixed |
+| 5 | Relative file paths causing inconsistencies | High | ✅ Fixed |
+| 6 | Missing resource cleanup (executor) | Medium | ✅ Fixed |
+| 7 | Hardcoded template links | Low | ✅ Fixed |
+| 8 | Message formatting issues | Low | ✅ Fixed |
+| 9 | Missing aiohttp dependency | Medium | ✅ Fixed |
+| 10 | No connection check before sending | Medium | ✅ Fixed |
+| 11 | Duplicate main() function | Medium | ✅ Fixed |
+| 12 | Logging configuration issues | Medium | ✅ Fixed |
+| 13 | Inefficient executor import | Low | ✅ Fixed |
+| 14 | Missing configuration validation | High | ✅ Fixed |
+| 15 | Telegram markdown injection vulnerability | Medium | ✅ Fixed |
+| 16 | ReDoS vulnerability in regex | Medium | ✅ Fixed |
+| 17 | Missing error handling for channel ID | Medium | ✅ Fixed |
+| 18 | Documentation update needed | Low | ✅ Fixed |
+
+---
+
+## 12. Conclusion
 
 The project has been thoroughly audited and all critical issues have been resolved. The codebase is now:
 
-- ✅ **Secure**: Proper input validation and sanitization
+- ✅ **Secure**: Proper input validation, sanitization, and markdown escaping
 - ✅ **Robust**: Comprehensive error handling and recovery
 - ✅ **Performant**: Non-blocking async operations throughout
-- ✅ **Maintainable**: Well-structured with type hints and documentation
+- ✅ **Maintainable**: Well-structured with type hints, documentation, and centralized logging
 - ✅ **Complete**: All advertised features implemented correctly
 - ✅ **Thread-safe**: Proper concurrency handling
 - ✅ **Production-ready**: Ready for deployment with proper configuration
+- ✅ **Well-documented**: Updated README and comprehensive audit report
 
 ### Key Achievements
 - Eliminated all blocking I/O operations
 - Fixed critical bot initialization issues
 - Improved code quality and maintainability
-- Enhanced security and error handling
+- Enhanced security (markdown escaping, ReDoS prevention, input validation)
+- Centralized logging configuration
 - Proper resource management and cleanup
+- Comprehensive configuration validation
 
 The project follows Python best practices and is ready for production use. All fixes maintain backward compatibility while significantly improving code quality, security, and performance.
 
 ---
 
-**Report Generated:** 2024  
+**Report Generated:** 2024 (Updated)  
 **Status:** ✅ All Critical Issues Resolved  
-**Production Ready:** Yes
+**Production Ready:** Yes  
+**Total Issues Fixed:** 18
