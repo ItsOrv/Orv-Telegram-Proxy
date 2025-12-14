@@ -238,7 +238,20 @@ def log_proxy(proxy_link: str, country: str, ip: str, port: str, ping: Optional[
         ping: Optional ping time in milliseconds
     """
     proxies = load_proxies()
-    proxy_id = str(len(proxies) + 1)
+    
+    # Generate unique ID by finding the maximum existing ID and adding 1
+    # This handles cases where proxies are deleted
+    max_id = 0
+    for existing_id in proxies.keys():
+        try:
+            id_num = int(existing_id)
+            if id_num > max_id:
+                max_id = id_num
+        except ValueError:
+            # Skip non-numeric IDs
+            continue
+    
+    proxy_id = str(max_id + 1)
     proxy_data = {
         'link': proxy_link,
         'Country': country,
