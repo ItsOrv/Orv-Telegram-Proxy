@@ -92,54 +92,83 @@ async def ping_proxy(host: str, port: str, timeout: float = 3.0) -> Optional[flo
     return await loop.run_in_executor(executor, _ping_proxy_sync, host, port, timeout)
 
 
-async def get_country_from_ip(ip: str, timeout: float = 5.0) -> str:
+async def get_country_from_ip(ip_or_hostname: str, timeout: float = 5.0) -> str:
     """
-    Get country information for an IP address using ip-api.com (non-blocking).
+    Get country information for an IP address or hostname using ip-api.com (non-blocking).
+    Includes rate limiting to respect API limits (45 requests/minute for free tier).
     
     Args:
-        ip: IP address to look up (validated before calling)
+        ip_or_hostname: IP address or hostname to look up (validated before calling)
         timeout: Request timeout in seconds
         
     Returns:
         Country name or 'Unknown' if lookup fails
     """
-    try:
-        # Additional validation before making request
-        if not ip or len(ip) > 45:  # Max IPv6 length
+    global _last_api_request_time
+    
+    # Rate limiting: ensure minimum interval between requests
+    current_time = time.time()
+    time_since_last = current_time - _last_api_request_time
+    if time_since_last < _api_min_interval:
+        await asyncio.sleep(_api_min_interval - time_since_last)
+    
+    # Use semaphore to limit concurrent requests
+    async with api_semaphore:
+        _last_api_request_time = time.time()
+        try:
+            # Additional validation before making request
+            if not ip_or_hostname or len(ip_or_hostname) > 253:  # Max hostname length
+                return 'Unknown'
+            
+            # Sanitize input for URL (basic check)
+            if any(char in ip_or_hostname for char in ['\n', '\r', '\t', ' ', '<', '>', '&']):
+                logger.warning(f"Invalid characters in IP/hostname: {ip_or_hostname}")
+                return 'Unknown'
+            
+            # Resolve hostname to IP if needed (ip-api.com accepts both IPs and hostnames)
+            # But we'll try to resolve hostnames first for better accuracy
+            lookup_target = ip_or_hostname
+            if not validate_ip_address(ip_or_hostname):
+                # It's a hostname, try to resolve it
+                try:
+                    loop = asyncio.get_event_loop()
+                    resolved_ip = await loop.getaddrinfo(ip_or_hostname, None, family=socket.AF_INET)
+                    if resolved_ip:
+                        lookup_target = resolved_ip[0][4][0]  # Get first IPv4 address
+                    else:
+                        # If resolution fails, use hostname directly (API may handle it)
+                        lookup_target = ip_or_hostname
+                except (socket.gaierror, OSError) as e:
+                    logger.debug(f"Could not resolve hostname {ip_or_hostname}, using as-is: {e}")
+                    lookup_target = ip_or_hostname
+            
+            # Use proper URL encoding
+            encoded_target = quote(lookup_target, safe='')
+            url = f'http://ip-api.com/json/{encoded_target}'
+            
+            # Use aiohttp for async HTTP requests
+            timeout_obj = aiohttp.ClientTimeout(total=timeout)
+            async with aiohttp.ClientSession(timeout=timeout_obj) as session:
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+            
+            # Validate response
+            if data.get('status') == 'fail':
+                logger.warning(f"IP API returned error: {data.get('message', 'Unknown error')}")
+                return 'Unknown'
+            
+            country = data.get('country', 'Unknown')
+            # Sanitize country name (basic check)
+            if country and len(country) <= 100:  # Reasonable country name length
+                return country
             return 'Unknown'
-        
-        # Sanitize IP for URL (basic check)
-        if any(char in ip for char in ['\n', '\r', '\t', ' ', '<', '>', '&']):
-            logger.warning(f"Invalid characters in IP address: {ip}")
+        except aiohttp.ClientError as e:
+            logger.error(f"Error fetching country for {ip_or_hostname}: {e}")
             return 'Unknown'
-        
-        # Use proper URL encoding
-        encoded_ip = quote(ip, safe='')
-        url = f'http://ip-api.com/json/{encoded_ip}'
-        
-        # Use aiohttp for async HTTP requests
-        timeout_obj = aiohttp.ClientTimeout(total=timeout)
-        async with aiohttp.ClientSession(timeout=timeout_obj) as session:
-            async with session.get(url) as response:
-                response.raise_for_status()
-                data = await response.json()
-        
-        # Validate response
-        if data.get('status') == 'fail':
-            logger.warning(f"IP API returned error: {data.get('message', 'Unknown error')}")
+        except Exception as e:
+            logger.error(f"Unexpected error getting country for {ip_or_hostname}: {e}")
             return 'Unknown'
-        
-        country = data.get('country', 'Unknown')
-        # Sanitize country name (basic check)
-        if country and len(country) <= 100:  # Reasonable country name length
-            return country
-        return 'Unknown'
-    except aiohttp.ClientError as e:
-        logger.error(f"Error fetching country for {ip}: {e}")
-        return 'Unknown'
-    except Exception as e:
-        logger.error(f"Unexpected error getting country for {ip}: {e}")
-        return 'Unknown'
 
 
 def load_proxies() -> Dict:
