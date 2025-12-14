@@ -17,6 +17,7 @@ import socket
 import time
 from typing import Dict, Optional, Tuple
 from threading import Lock
+import ipaddress
 from concurrent.futures import ThreadPoolExecutor
 
 # Setup logging (centralized configuration)
@@ -176,7 +177,6 @@ def log_proxy(proxy_link: str, country: str, ip: str, port: str, ping: Optional[
 
 def validate_ip_address(ip: str) -> bool:
     """Validate if a string is a valid IP address (IPv4 or IPv6)."""
-    import ipaddress
     try:
         ipaddress.ip_address(ip)
         return True
