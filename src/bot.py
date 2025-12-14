@@ -55,10 +55,10 @@ def _ping_proxy_sync(host: str, port: str, timeout: float = 3.0) -> Optional[flo
     try:
         port_int = int(port)
         start_time = time.time()
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
-        result = sock.connect_ex((host, port_int))
-        sock.close()
+        # Use context manager to ensure socket is always closed
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(timeout)
+            result = sock.connect_ex((host, port_int))
         
         if result == 0:
             ping_ms = (time.time() - start_time) * 1000
