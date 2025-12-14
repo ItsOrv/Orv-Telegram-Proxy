@@ -1,25 +1,41 @@
 # config.py
-# loads runtime settings from the .env file
 
 import os
+import logging
+from typing import List, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
 
-api_id = os.getenv('API_ID')
-api_hash = os.getenv('API_HASH')
-bot_token = os.getenv('BOT_TOKEN')
-channel_id = os.getenv('CHANNEL_ID')
+# Get logger (logging will be configured by logging_config module when imported)
+logger = logging.getLogger(__name__)
 
-proxy_channel_url = os.getenv('PROXY_CHANNEL_URL')
-config_channel_url = os.getenv('CONFIG_CHANNEL_URL')
-bot_url = os.getenv('BOT_URL')
-support_url = os.getenv('SUPPORT_URL')
+
+def get_required_env(key: str) -> str:
+    """Get required environment variable or raise error."""
+    value = os.getenv(key)
+    if not value:
+        raise ValueError(f"Required environment variable {key} is not set. Please check your .env file.")
+    return value
+
+
+def get_optional_env(key: str, default: Optional[str] = None) -> Optional[str]:
+    """Get optional environment variable with default value."""
+    return os.getenv(key, default)
+
+
+# Required configuration
+api_id: str = get_required_env('API_ID')
+api_hash: str = get_required_env('API_HASH')
+bot_token: str = get_required_env('BOT_TOKEN')
+channel_id: str = get_required_env('CHANNEL_ID')
+
+# Optional URLs (can be None)
+proxy_channel_url: Optional[str] = get_optional_env('PROXY_CHANNEL_URL')
+config_channel_url: Optional[str] = get_optional_env('CONFIG_CHANNEL_URL')
+bot_url: Optional[str] = get_optional_env('BOT_URL')
+support_url: Optional[str] = get_optional_env('SUPPORT_URL')
 
 # Load channels as a list of integers
-_raw_channels = os.getenv('CHANNELS', '')
-channels = [int(c.strip()) for c in _raw_channels.split(',') if c.strip()]
-
-# Warn early if no channels were provided
-if not channels:
-    print("Warning: CHANNELS is empty, the bot will not monitor anything")
+channels_str = get_required_env('CHANNELS')
+channels: List[int] = [int(chat_id.strip()) for chat_id in channels_str.split(',') if chat_id.strip()]
