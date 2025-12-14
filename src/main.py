@@ -24,8 +24,14 @@ def run_flask_app() -> None:
     try:
         logger.info("Starting Flask web server on http://0.0.0.0:5000")
         app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    except OSError as e:
+        # Handle port already in use or permission errors
+        if "Address already in use" in str(e) or "Permission denied" in str(e):
+            logger.error(f"Cannot start Flask server: {e}. Port 5000 may be in use.")
+        else:
+            logger.error(f"OS error running Flask app: {e}")
     except Exception as e:
-        logger.error(f"Error running Flask app: {e}")
+        logger.error(f"Error running Flask app: {e}", exc_info=True)
 
 
 async def main() -> None:
