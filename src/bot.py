@@ -159,6 +159,48 @@ def is_proxy_logged(proxy_link: str) -> bool:
     return any(entry.get('link') == proxy_link for entry in proxies.values())
 
 
+def log_proxy_if_not_exists(proxy_link: str, country: str, ip: str, port: str, ping: Optional[float] = None) -> bool:
+    """
+    Atomically check if proxy exists and log it if it doesn't.
+    This prevents race conditions when multiple proxies are processed concurrently.
+    """
+    with file_lock:
+        proxies = load_proxies()
+
+        if any(entry.get('link') == proxy_link for entry in proxies.values()):
+            return False
+
+        max_id = 0
+        for existing_id in proxies.keys():
+            try:
+                id_num = int(existing_id)
+                if id_num > max_id:
+                    max_id = id_num
+            except ValueError:
+                continue
+
+        proxy_id = str(max_id + 1)
+        proxy_data = {
+            'link': proxy_link,
+            'Country': country,
+            'IP': ip,
+            'Port': port
+        }
+        if ping is not None:
+            proxy_data['Ping'] = f"{ping}ms"
+
+        proxies[proxy_id] = proxy_data
+
+        try:
+            with open(PROXY_FILE, 'w', encoding='utf-8') as file:
+                json.dump(proxies, file, indent=4, ensure_ascii=False)
+        except IOError as e:
+            logger.error(f"Error saving proxies file: {e}")
+            return False
+
+        return True
+
+
 def log_proxy(proxy_link: str, country: str, ip: str, port: str, ping: Optional[float] = None) -> None:
     """Log the proxy to the JSON file."""
     proxies = load_proxies()
