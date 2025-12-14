@@ -21,12 +21,9 @@ from urllib.parse import quote
 import ipaddress
 from concurrent.futures import ThreadPoolExecutor
 
-# Setup logging with better formatting
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+# Setup logging (centralized configuration)
+from logging_config import setup_logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # File to store proxies - use absolute path based on script location
@@ -301,6 +298,24 @@ def parse_proxy_link(link: str) -> Optional[Tuple[str, str]]:
         return None
 
 
+def escape_markdown(text: str) -> str:
+    """
+    Escape special characters for Telegram markdown v2.
+    
+    Args:
+        text: Text to escape
+        
+    Returns:
+        Escaped text safe for Telegram markdown
+    """
+    # Telegram markdown v2 special characters that need escaping
+    special_chars = ['*', '_', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    escaped = text
+    for char in special_chars:
+        escaped = escaped.replace(char, f'\\{char}')
+    return escaped
+
+
 def format_proxy_message(
     country: str,
     ip: str,
@@ -319,20 +334,29 @@ def format_proxy_message(
     Returns:
         Formatted message string
     """
+    # Escape country name to prevent markdown injection
+    safe_country = escape_markdown(country)
+    
     # Truncate IP if too long
     display_ip = ip
     if len(ip) > 16:
         display_ip = ip[:16] + '.etc'
     
+    # Escape IP and port for safety
+    safe_ip = escape_markdown(display_ip)
+    safe_port = escape_markdown(port)
+    
     message_parts = [
         "**\u2774Orv\u2774**\n",
-        f"\u2022 Country: {country}\n",
-        f"\u2022 IP: {display_ip}\n",
-        f"\u2022 Port: {port}\n"
+        f"\u2022 Country: {safe_country}\n",
+        f"\u2022 IP: {safe_ip}\n",
+        f"\u2022 Port: {safe_port}\n"
     ]
     
     if ping is not None:
-        message_parts.append(f"\u2022 Ping: {ping}ms\n")
+        # Ping is a number, but escape it for consistency
+        safe_ping = escape_markdown(f"{ping}ms")
+        message_parts.append(f"\u2022 Ping: {safe_ping}\n")
     
     message_parts.append("\n")
     
@@ -360,7 +384,9 @@ async def my_event_handler(event):
         return
     
     message = event.message.message
-    proxy_links = re.findall(r'https?://t\.me/proxy\?[^\s<>"]+', message)
+    # Use a more restrictive regex to prevent ReDoS attacks
+    # Limit the character class and use non-greedy matching
+    proxy_links = re.findall(r'https?://t\.me/proxy\?[^\s<>"]{1,500}', message)
     
     if not proxy_links:
         return
@@ -399,6 +425,11 @@ async def my_event_handler(event):
                     logger.warning("Bot client is not connected, skipping message send")
                     continue
                 
+                # Validate channel_id before sending
+                if not channel_id or not str(channel_id).strip():
+                    logger.error("Invalid channel_id: cannot be empty")
+                    continue
+                
                 await bot.send_message(
                     channel_id,
                     text,
@@ -406,8 +437,11 @@ async def my_event_handler(event):
                     link_preview=False
                 )
                 logger.info(f"Successfully sent proxy {server}:{port} to channel")
+            except ValueError as e:
+                logger.error(f"Invalid channel_id format: {e}")
+                continue
             except Exception as e:
-                logger.error(f"Error sending message to channel: {e}")
+                logger.error(f"Error sending message to channel {channel_id}: {e}", exc_info=True)
                 continue
             
             # Log the proxy
@@ -442,45 +476,10 @@ async def schedule_cleaning() -> None:
             await asyncio.sleep(3600)  # Retry after 1 hour on error
 
 
-async def main() -> None:
-    """Main function to start the bot."""
-    try:
-        # Ensure full connection for both client and bot
-        await client.start()
-        logger.info("Telegram client started successfully")
-        
-        # Start the bot client (for sending messages)
-        await bot.start(bot_token=bot_token)
-        logger.info("Telegram bot client started successfully")
-        
-        # Schedule the cleaning task
-        asyncio.create_task(schedule_cleaning())
-        logger.info("Scheduled proxy cleaning task")
-        
-        # Run the bot
-        logger.info("Bot is running and listening for messages...")
-        await client.run_until_disconnected()
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user")
-    except Exception as e:
-        logger.error(f"Fatal error in main: {e}", exc_info=True)
-        raise
-    finally:
-        # Cleanup
-        try:
-            await bot.disconnect()
-            await client.disconnect()
-            executor.shutdown(wait=True)
-            logger.info("Resources cleaned up successfully")
-        except Exception as e:
-            logger.error(f"Error during cleanup: {e}")
-
-
+# Note: main() function has been moved to main.py to avoid duplication
+# This module can still be run standalone for testing purposes
 if __name__ == '__main__':
-    try:
-        client.loop.run_until_complete(main())
-    except KeyboardInterrupt:
-        logger.info("Bot shutdown complete")
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        raise
+    import sys
+    logger.warning("Running bot.py directly is deprecated. Please use 'python src/main.py' instead.")
+    logger.warning("For standalone bot (without web server), consider creating a separate entry point.")
+    sys.exit(1)
