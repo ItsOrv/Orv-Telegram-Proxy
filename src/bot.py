@@ -68,9 +68,9 @@ async def ping_proxy(host: str, port: str, timeout: float = 3.0) -> Optional[flo
     return await loop.run_in_executor(executor, _ping_proxy_sync, host, port, timeout)
 
 
-async def get_country_from_ip(ip: str, timeout: float = 5.0) -> str:
+async def get_country_from_ip(ip_or_hostname: str, timeout: float = 5.0) -> str:
     """
-    Get country information for an IP address using ip-api.com (non-blocking).
+    Get country information for an IP address or hostname using ip-api.com (non-blocking).
     Includes rate limiting to respect API limits (45 requests/minute for free tier).
     """
     global _last_api_request_time
@@ -85,7 +85,26 @@ async def get_country_from_ip(ip: str, timeout: float = 5.0) -> str:
     async with api_semaphore:
         _last_api_request_time = time.time()
         try:
-            url = f'http://ip-api.com/json/{ip}'
+            if not ip_or_hostname or len(ip_or_hostname) > 253:
+                return 'Unknown'
+
+            if any(char in ip_or_hostname for char in ['\n', '\r', '\t', ' ', '<', '>', '&']):
+                logger.warning(f"Invalid characters in IP/hostname: {ip_or_hostname}")
+                return 'Unknown'
+
+            # Resolve hostname to IP if needed for better accuracy
+            lookup_target = ip_or_hostname
+            if not validate_ip_address(ip_or_hostname):
+                try:
+                    loop = asyncio.get_event_loop()
+                    resolved_ip = await loop.getaddrinfo(ip_or_hostname, None, family=socket.AF_INET)
+                    if resolved_ip:
+                        lookup_target = resolved_ip[0][4][0]
+                except (socket.gaierror, OSError) as e:
+                    logger.debug(f"Could not resolve hostname {ip_or_hostname}, using as-is: {e}")
+                    lookup_target = ip_or_hostname
+
+            url = f'http://ip-api.com/json/{lookup_target}'
             timeout_obj = aiohttp.ClientTimeout(total=timeout)
             async with aiohttp.ClientSession(timeout=timeout_obj) as session:
                 async with session.get(url) as response:
@@ -94,12 +113,15 @@ async def get_country_from_ip(ip: str, timeout: float = 5.0) -> str:
             if data.get('status') == 'fail':
                 logger.warning(f"IP API returned error: {data.get('message', 'Unknown error')}")
                 return 'Unknown'
-            return data.get('country', 'Unknown')
+            country = data.get('country', 'Unknown')
+            if country and len(country) <= 100:
+                return country
+            return 'Unknown'
         except aiohttp.ClientError as e:
-            logger.error(f"Error fetching country for {ip}: {e}")
+            logger.error(f"Error fetching country for {ip_or_hostname}: {e}")
             return 'Unknown'
         except Exception as e:
-            logger.error(f"Unexpected error getting country for {ip}: {e}")
+            logger.error(f"Unexpected error getting country for {ip_or_hostname}: {e}")
             return 'Unknown'
 
 def load_proxies() -> Dict:
